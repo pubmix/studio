@@ -1,0 +1,72 @@
+{
+  "engine": "0.1.0",
+  "implementation_sha256": "57921ae0ed4e472d3e83502698d4a4d073d13c7c00ae37740f05a29a39fe7a8b",
+  "schema": "studio.stems.v1",
+  "input_sha256": "abf87b0763bd9cc69d6713922255224bdc5aa30dbf2e855983df65d800ed0906",
+  "settings": {
+    "preset": "balanced",
+    "backend": "demucs",
+    "model": null,
+    "vocal_model": "model_bs_roformer_ep_317_sdr_12.9755.ckpt",
+    "vocal_backend": "mlx",
+    "device": "cpu",
+    "shifts": 0,
+    "overlap": 0.25,
+    "seed": 0,
+    "consistency": "melody"
+  },
+  "backends": {
+    "demucs": {
+      "adapter": "demucs-direct-v1",
+      "demucs": "4.1.0",
+      "torch": "2.5.1"
+    }
+  },
+  "key": "682f40f79ab629d305b25a0b7718b6139a3174ef9f8d956cc2fa8a4ff8dc3799",
+  "sample_rate": 44100,
+  "frames": 529200,
+  "channels": 2,
+  "stages": [
+    {
+      "stage": "separate",
+      "backend": "demucs",
+      "model": "htdemucs_ft",
+      "weights": {
+        "model": "htdemucs_ft",
+        "state_dict_sha256": "fdcf99ceabe45087c73aeac46bbe8aaf557889d1c9e5a29403dc68caf76f6ad3"
+      }
+    }
+  ],
+  "format": "WAV FLOAT32",
+  "stems": [
+    {
+      "name": "VOCALS",
+      "file": "vocals.wav",
+      "sha256": "ac3ebd2a2cd85c2aae1ee8f0ae6cfdb65e2caafd9217c25d4539d585c532978a",
+      "peak": 0.0010142279788851738
+    },
+    {
+      "name": "MELODY",
+      "file": "melody.wav",
+      "sha256": "0bc288368473602119f83b665236c5a29d1a089c02fef12343ab45d391bb69e0",
+      "peak": 0.05467434599995613
+    },
+    {
+      "name": "BASS",
+      "file": "bass.wav",
+      "sha256": "622a0e1ff8891b5e49102b8033a013da3d29027c6999fa59f287ead701e6af69",
+      "peak": 0.07447291910648346
+    },
+    {
+      "name": "RHYTHM",
+      "file": "rhythm.wav",
+      "sha256": "b696a7085125304e509e0a0f2bb236fab4ce6709c2516ca09d952f77391f4cad",
+      "peak": 0.1079789474606514
+    }
+  ],
+  "seconds": 128.5388315001037,
+  "residual_rms_before": 0.0014176110260192747,
+  "reconstruction_max_abs": 1.862645149230957e-09,
+  "platform": "macOS-15.0-arm64-arm-64bit",
+  "quality_validated": false
+}

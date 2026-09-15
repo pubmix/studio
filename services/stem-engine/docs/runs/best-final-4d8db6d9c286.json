@@ -1,0 +1,95 @@
+{
+  "engine": "0.1.0",
+  "implementation_sha256": "57921ae0ed4e472d3e83502698d4a4d073d13c7c00ae37740f05a29a39fe7a8b",
+  "schema": "studio.stems.v1",
+  "input_sha256": "abf87b0763bd9cc69d6713922255224bdc5aa30dbf2e855983df65d800ed0906",
+  "settings": {
+    "preset": "best",
+    "backend": "demucs",
+    "model": null,
+    "vocal_model": "model_bs_roformer_ep_317_sdr_12.9755.ckpt",
+    "vocal_backend": "mlx",
+    "device": "cpu",
+    "shifts": 0,
+    "overlap": 0.25,
+    "seed": 0,
+    "consistency": "melody"
+  },
+  "backends": {
+    "demucs": {
+      "adapter": "demucs-direct-v1",
+      "demucs": "4.1.0",
+      "torch": "2.5.1"
+    },
+    "mlx": {
+      "adapter": "separator-v1",
+      "package": "mlx-audio-separator",
+      "version": "0.1.5"
+    }
+  },
+  "key": "4d8db6d9c286831360002914fb57187e769de439cf9edbdfba1581a984064544",
+  "sample_rate": 44100,
+  "frames": 529200,
+  "channels": 2,
+  "stages": [
+    {
+      "stage": "extract_vocals",
+      "backend": "mlx",
+      "model": "model_bs_roformer_ep_317_sdr_12.9755.ckpt",
+      "weights": {
+        "model": "model_bs_roformer_ep_317_sdr_12.9755.ckpt",
+        "artifacts": [
+          {
+            "file": "model_bs_roformer_ep_317_sdr_12.9755.ckpt",
+            "sha256": "5b84f37e8d444c8cb30c79d77f613a41c05868ff9c9ac6c7049c00aefae115aa"
+          },
+          {
+            "file": "model_bs_roformer_ep_317_sdr_12.9755.yaml",
+            "sha256": "2bfdd16c656bd9519aba757cc4f8834b7ede675eb1e00ec4772d74ae1c41af7f"
+          }
+        ]
+      }
+    },
+    {
+      "stage": "split_instruments",
+      "backend": "demucs",
+      "model": "htdemucs_6s",
+      "weights": {
+        "model": "htdemucs_6s",
+        "state_dict_sha256": "12e5fcd0a5ae2b2fd779aed2019ef6333fff7b100f3c2c323e803ea42e0f56a5"
+      }
+    }
+  ],
+  "format": "WAV FLOAT32",
+  "stems": [
+    {
+      "name": "VOCALS",
+      "file": "vocals.wav",
+      "sha256": "952e63b52bc38fd859c195d1e5144e3c7d659ec3c761f3f1bb815abb3e5d0760",
+      "peak": 0.0018731005256995559
+    },
+    {
+      "name": "MELODY",
+      "file": "melody.wav",
+      "sha256": "4523eb1b6d68ea20ebe994ab141b66490508a0ba11e0f43641734d0b66f80419",
+      "peak": 0.07571620494127274
+    },
+    {
+      "name": "BASS",
+      "file": "bass.wav",
+      "sha256": "da58488a1a7c1c0fe3f61735c8f1423fa5bf331873e5daec0f200fe8cdf946a1",
+      "peak": 0.08201809972524643
+    },
+    {
+      "name": "RHYTHM",
+      "file": "rhythm.wav",
+      "sha256": "736927a7c92eaa296caa77abad565b8705d018e6792db2735a238d58b0630d71",
+      "peak": 0.09136852622032166
+    }
+  ],
+  "seconds": 58.64410529192537,
+  "residual_rms_before": 0.0016196599578428249,
+  "reconstruction_max_abs": 3.3178366720676422e-09,
+  "platform": "macOS-15.0-arm64-arm-64bit",
+  "quality_validated": false
+}

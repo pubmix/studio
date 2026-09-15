@@ -1,0 +1,15 @@
+#!/bin/sh
+set -eu
+PROJECT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+STUDIO_PYTHON="$PROJECT/.venv/bin/python"
+STUDIO_CACHE="$PROJECT/.models"
+if [ ! -x "$STUDIO_PYTHON" ]; then
+    echo 'Run scripts/setup first.' >&2
+    exit 1
+fi
+export PYTHONPATH="$PROJECT${PYTHONPATH:+:$PYTHONPATH}"
+export TORCH_HOME="${TORCH_HOME:-$STUDIO_CACHE/torch}"
+export HF_HOME="${HF_HOME:-$STUDIO_CACHE/huggingface}"
+export STUDIO_MODEL_DIR="${STUDIO_MODEL_DIR:-$STUDIO_CACHE/separator}"
+export PATH="$(dirname "$STUDIO_PYTHON"):$PATH"
+exec "$STUDIO_PYTHON" -m studio_stem_engine.cli "$@"
