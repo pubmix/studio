@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "STUDIO prepared stem set v1",
+  "type": "object",
+  "required": [
+    "api_version",
+    "set_id",
+    "sample_rate",
+    "frames",
+    "alignment_offset_frames",
+    "stems"
+  ],
+  "properties": {
+    "api_version": {
+      "const": 1
+    },
+    "set_id": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "title": {
+      "type": "string"
+    },
+    "sample_rate": {
+      "const": 44100
+    },
+    "frames": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "alignment_offset_frames": {
+      "const": 0
+    },
+    "stems": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "prefixItems": [
+        {
+          "type": "object",
+          "required": [
+            "role",
+            "file"
+          ],
+          "properties": {
+            "role": {
+              "const": "VOCALS"
+            },
+            "file": {
+              "const": "vocals.wav"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "role",
+            "file"
+          ],
+          "properties": {
+            "role": {
+              "const": "MELODY"
+            },
+            "file": {
+              "const": "melody.wav"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "role",
+            "file"
+          ],
+          "properties": {
+            "role": {
+              "const": "BASS"
+            },
+            "file": {
+              "const": "bass.wav"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "role",
+            "file"
+          ],
+          "properties": {
+            "role": {
+              "const": "RHYTHM"
+            },
+            "file": {
+              "const": "rhythm.wav"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

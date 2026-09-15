@@ -1,0 +1,4 @@
+build/
+STUDIO-data/
+__pycache__/
+*.pyc

@@ -1,0 +1,11 @@
+Serial diagnostic
+teensy_size: Memory Usage on Teensy 4.1:
+teensy_size:   FLASH: code:105056, data:49432, headers:8324   free for files:7963652
+teensy_size:    RAM1: variables:153120, code:102120, padding:28952   free for local variables:240096
+teensy_size:    RAM2: variables:281472  free for malloc/new:242816
+
+SD/I2S example
+teensy_size: Memory Usage on Teensy 4.1:
+teensy_size:   FLASH: code:111104, data:49432, headers:8420   free for files:7957508
+teensy_size:    RAM1: variables:153216, code:108088, padding:22984   free for local variables:240000
+teensy_size:    RAM2: variables:281984  free for malloc/new:242304

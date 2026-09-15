@@ -1,0 +1,31 @@
+# Local builds and environments
+**/build/
+**/STUDIO-data/
+**/demo-assets/
+**/__pycache__/
+*.py[cod]
+.DS_Store
+.venv/
+venv/
+node_modules/
+.env
+.env.*
+!.env.example
+# Large/local audio and ML assets
+*.wav
+*.mp3
+*.flac
+*.aif
+*.aiff
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx
+# Compiler and firmware outputs
+*.elf
+*.hex
+*.eep
+*.lst
+*.sym
+*.zip
