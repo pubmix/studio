@@ -9,7 +9,7 @@ STUDIO (formerly Dub Box) is a portable four-lane music instrument. This reposit
 | Area | Contents | Status |
 |---|---|---|
 | [firmware/teensy](firmware/teensy) | Teensy 4.1 sketch, portable C++ core, desktop simulator, tests and documentation | Prototype implemented; hardware untested |
-| [services/stem-engine](services/stem-engine) | Local audio preparation and AI/ML separation | Reserved for the separate implementation track |
+| [services/stem-engine](services/stem-engine) | Local audio preparation and AI/ML separation | Local prototype implemented; 20 tests and synthetic model inference passed |
 | [packages/contracts](packages/contracts) | Versioned interfaces shared between components | Prepared-stem transfer schema v1 |
 | [apps](apps) | Future touchscreen/companion application code | Reserved |
 | [hardware](hardware) | Future schematics, PCB, enclosure and board configuration | Reserved |
@@ -17,6 +17,8 @@ STUDIO (formerly Dub Box) is a portable four-lane music instrument. This reposit
 
 ## Start here
 
+- [Stem Engine quick start](services/stem-engine/README.md)
+- [Stem Engine verification](services/stem-engine/docs/VERIFICATION.md)
 - [Firmware quick start](firmware/teensy/README.md)
 - [Working features and outstanding decisions](firmware/teensy/docs/SCOPE.md)
 - [Validation results](firmware/teensy/docs/VALIDATION.md)

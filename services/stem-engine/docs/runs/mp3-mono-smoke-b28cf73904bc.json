@@ -1,0 +1,77 @@
+{
+  "engine": "0.1.0",
+  "implementation_sha256": "6cb44323f29c811a50d5f19ddf295ce45c5cb6d060c6c22320513cff4164f221",
+  "schema": "studio.stems.v1",
+  "input_sha256": "9e714bb9edcb6bb00001661d222bb8ab4d2087dc0e84e6f96002410af89b4e84",
+  "settings": {
+    "preset": "fast",
+    "backend": "demucs",
+    "model": null,
+    "vocal_model": "model_bs_roformer_ep_317_sdr_12.9755.ckpt",
+    "vocal_backend": "mlx",
+    "device": "cpu",
+    "shifts": 1,
+    "overlap": 0.25,
+    "seed": 0,
+    "consistency": "melody"
+  },
+  "backends": {
+    "demucs": {
+      "adapter": "demucs-direct-v1",
+      "demucs": "4.1.0",
+      "torch": "2.5.1"
+    }
+  },
+  "audio_libraries": {
+    "numpy": "2.4.6",
+    "scipy": "1.17.1",
+    "soundfile": "0.14.0"
+  },
+  "key": "b28cf73904bc65efd9599ea7afa95b4e1d921f290771c072b8d91a13fe285e8c",
+  "sample_rate": 48000,
+  "frames": 96001,
+  "channels": 1,
+  "stages": [
+    {
+      "stage": "separate",
+      "backend": "demucs",
+      "model": "htdemucs",
+      "weights": {
+        "model": "htdemucs",
+        "state_dict_sha256": "7f570237bc0bd28e792bfba06fa7420e06c5271d31a72da3e4a8e5de469d2366"
+      }
+    }
+  ],
+  "format": "WAV FLOAT32",
+  "stems": [
+    {
+      "name": "VOCALS",
+      "file": "vocals.wav",
+      "sha256": "2bfd9c30390309e5a50c6b0c112fffcc6a33dd62491b4cf6c458356163c8be8d",
+      "peak": 0.005509625654667616
+    },
+    {
+      "name": "MELODY",
+      "file": "melody.wav",
+      "sha256": "df8d4cad59671cc969679c001fb2807b4975a78993f2e536f2e8627787d3ccff",
+      "peak": 0.06461204588413239
+    },
+    {
+      "name": "BASS",
+      "file": "bass.wav",
+      "sha256": "b6faf72e6939a7ca819d8159b2feba1488a6b512085626982e9f1d5a2ea18c20",
+      "peak": 0.09375665336847305
+    },
+    {
+      "name": "RHYTHM",
+      "file": "rhythm.wav",
+      "sha256": "2600ca7b488088b15aa8bb3087e40b39e9cc09d6b34da2671afc9932651ffe89",
+      "peak": 0.0046234228648245335
+    }
+  ],
+  "seconds": 9.004802457988262,
+  "residual_rms_before": 0.008217348202626467,
+  "reconstruction_max_abs": 3.6961864680051804e-09,
+  "platform": "macOS-15.0-arm64-arm-64bit",
+  "quality_validated": false
+}

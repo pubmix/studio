@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+cd "$(dirname "$0")/.."
+uv venv --python 3.11 .venv
+uv pip install --python .venv/bin/python -r requirements-tested.txt
+uv pip install --python .venv/bin/python -e .
+.venv/bin/python - <<'PY'
+from pathlib import Path
+import imageio_ffmpeg
+p=Path('.venv/bin/ffmpeg')
+if not p.exists(): p.symlink_to(imageio_ffmpeg.get_ffmpeg_exe())
+PY

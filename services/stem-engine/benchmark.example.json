@@ -1,0 +1,18 @@
+{
+  "purpose": "Representative user multitrack quality evaluation — fill in paths before running",
+  "tracks": [{
+    "id": "replace-with-track-id",
+    "mixture": "audio/mixture.wav",
+    "references": {
+      "vocals": "audio/vocals.wav",
+      "melody": "audio/melody.wav",
+      "bass": "audio/bass.wav",
+      "rhythm": "audio/rhythm.wav"
+    }
+  }],
+  "configurations": [
+    {"name": "fast", "settings": {"preset": "fast"}},
+    {"name": "balanced", "settings": {"preset": "balanced"}},
+    {"name": "best-experimental", "settings": {"preset": "best"}}
+  ]
+}
