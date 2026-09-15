@@ -1,0 +1,33 @@
+# STUDIO
+
+STUDIO (formerly Dub Box) is a portable four-lane music instrument. This repository brings its firmware, local Stem Engine, application interfaces and hardware designs together.
+
+**Canonical stem order: VOCALS → MELODY → BASS → RHYTHM.**
+
+## Project areas
+
+| Area | Contents | Status |
+|---|---|---|
+| [firmware/teensy](firmware/teensy) | Teensy 4.1 sketch, portable C++ core, desktop simulator, tests and documentation | Prototype implemented; hardware untested |
+| [services/stem-engine](services/stem-engine) | Local audio preparation and AI/ML separation | Reserved for the separate implementation track |
+| [packages/contracts](packages/contracts) | Versioned interfaces shared between components | Prepared-stem transfer schema v1 |
+| [apps](apps) | Future touchscreen/companion application code | Reserved |
+| [hardware](hardware) | Future schematics, PCB, enclosure and board configuration | Reserved |
+| [docs](docs) | Cross-project architecture and integration conventions | Initial guidance |
+
+## Start here
+
+- [Firmware quick start](firmware/teensy/README.md)
+- [Working features and outstanding decisions](firmware/teensy/docs/SCOPE.md)
+- [Validation results](firmware/teensy/docs/VALIDATION.md)
+- [Stem Engine integration](firmware/teensy/INTEGRATION.md)
+- [Adding the other project components](docs/CONTRIBUTING_COMPONENTS.md)
+
+```sh
+make test
+make simulator
+```
+
+The firmware diagnostic and optional SD/I²S builds compiled with Teensyduino 1.62.0. Desktop verification passed 5,153 C++ checks and eight import tests. This remains an engineering prototype with graphical interfaces, hardware bindings and production audio features still to complete.
+
+Generated binaries, model weights, training data and personal audio do not belong in source control. Generate test assets with `python3 firmware/teensy/tools/make_demo_assets.py firmware/teensy/demo-assets`.
