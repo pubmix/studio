@@ -51,3 +51,11 @@ This project does not include Teensy firmware, real-time DSP or the full STUDIO 
 ## Firmware integration boundary
 
 These are FLOAT32 master stems. The existing firmware transfer profile requires 44.1 kHz stereo PCM16 and a separate manifest. A transfer exporter remains to be implemented; do not feed these masters directly to the firmware importer. See [integration notes](docs/REPOSITORY_INTEGRATION.md).
+
+## Next steps
+
+Benchmark representative music and aligned reference stems, select the separation pipeline from measured and listening results, and implement the explicit firmware transfer exporter. Spleeter remains an unverified baseline because its installation failed on the test host.
+
+## Documentation
+
+Each new engine component folder must include a README.md covering purpose, current status, installation/usage, verification, limitations and next steps. Keep it current with code and model changes. Follow the [repository convention](../../docs/CONTRIBUTING_COMPONENTS.md).
