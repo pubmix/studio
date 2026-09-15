@@ -16,7 +16,7 @@ The separate engine implementation has not yet been imported or reconciled with 
 
 ## Validation
 
-Run `make test` at the repository root for firmware core and import tests. Each incoming component must document its own checks. Firmware build instructions are in its README. CI can be added once the remaining component toolchains and runner requirements are known.
+Run `make test` at the repository root for firmware core and import tests. Each incoming component must document its own checks. Firmware build instructions are in its README. GitHub Actions runs the firmware checks on Linux and macOS. Extend it with each incoming component's checks once its toolchain is known.
 
 ## Repository hygiene
 

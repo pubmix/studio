@@ -1,0 +1,40 @@
+name: Firmware checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firmware-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  desktop:
+    name: Desktop (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Build simulator and tests
+        run: make simulator
+      - name: Run core and import tests
+        run: make test
+      - name: Run address and undefined-behavior sanitizers
+        if: runner.os == 'Linux'
+        run: make sanitize
+      - name: Generate and validate synchronized WAV fixtures
+        if: runner.os == 'Linux'
+        run: |
+          python3 firmware/teensy/tools/make_demo_assets.py firmware/teensy/demo-assets
+          python3 firmware/teensy/tools/validate_prepared.py firmware/teensy/demo-assets/prepared

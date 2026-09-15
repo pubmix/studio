@@ -1,5 +1,7 @@
 # STUDIO
 
+[![Firmware checks](https://github.com/pubmix/studio/actions/workflows/firmware.yml/badge.svg)](https://github.com/pubmix/studio/actions/workflows/firmware.yml)
+
 STUDIO (formerly Dub Box) is a portable four-lane music instrument. This repository brings its firmware, local Stem Engine, application interfaces and hardware designs together.
 
 **Canonical stem order: VOCALS → MELODY → BASS → RHYTHM.**
@@ -31,3 +33,7 @@ make simulator
 The firmware diagnostic and optional SD/I²S builds compiled with Teensyduino 1.62.0. Desktop verification passed 5,153 C++ checks and eight import tests. This remains an engineering prototype with graphical interfaces, hardware bindings and production audio features still to complete.
 
 Generated binaries, model weights, training data and personal audio do not belong in source control. Generate test assets with `python3 firmware/teensy/tools/make_demo_assets.py firmware/teensy/demo-assets`.
+
+## Development
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). GitHub Actions builds and tests the firmware core on Linux and macOS. The separate Stem Engine implementation is ready to be imported into its reserved directory.
