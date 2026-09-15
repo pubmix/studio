@@ -38,4 +38,4 @@ Generated binaries, model weights, training data and personal audio do not belon
 
 ## Development
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). GitHub Actions builds and tests the firmware core on Linux and macOS. The separate Stem Engine implementation is ready to be imported into its reserved directory.
+See [CONTRIBUTING.md](CONTRIBUTING.md). GitHub Actions builds and tests the firmware core on Linux and macOS. The local Stem Engine lives in `services/stem-engine/`; its README documents its separate environment and validation commands.
