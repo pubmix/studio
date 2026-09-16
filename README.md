@@ -14,10 +14,12 @@ STUDIO (formerly Dub Box) is a portable four-lane music instrument. This reposit
 | [services/stem-engine](services/stem-engine) | Local audio preparation and AI/ML separation | Local prototype implemented; 20 tests and synthetic model inference passed |
 | [packages/contracts](packages/contracts) | Versioned interfaces shared between components | Prepared-stem transfer schema v1 |
 | [apps](apps) | Future touchscreen/companion application code | Reserved |
-| [hardware](hardware) | Future schematics, PCB, enclosure and board configuration | Reserved |
+| [hardware](hardware) | V1 system architecture, candidate BOM, pin budget, power and integration contracts | Architecture proposal; hardware untested |
 | [docs](docs) | Cross-project architecture and integration conventions | Initial guidance |
 
 ## Start here
+
+- [V1 hardware architecture and integration handoff](hardware/architecture-v1/README.md)
 
 - [Stem Engine quick start](services/stem-engine/README.md)
 - [Stem Engine verification](services/stem-engine/docs/VERIFICATION.md)
