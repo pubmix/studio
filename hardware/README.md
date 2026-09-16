@@ -6,7 +6,9 @@ Own the physical instrument: schematics, PCB layouts, enclosure and mechanical d
 
 ## Current state
 
-This area is reserved for hardware design work. Exact display, codec, controls and headphone wiring remain undecided. No schematic, PCB or tested hardware implementation is claimed here.
+The [V1 hardware architecture package](architecture-v1/README.md) proposes a Teensy 4.1 + Compute Module 5 system, with a candidate BOM, Teensy pin/resource budget, power tree, system interfaces, bring-up plan and integration handoff. It preserves the fixed four-lane controls and VOCALS / MELODY / BASS / RHYTHM stem contract.
+
+This is an architecture proposal, not a fabrication release. Recommended parts and pin assignments require integration review and bench validation. No schematic, PCB or tested hardware implementation is claimed here.
 
 ## Related components
 
@@ -16,7 +18,11 @@ This area is reserved for hardware design work. Exact display, codec, controls a
 
 ## Next steps
 
-Record selected parts and design decisions; define power, audio, display and control connections; then add schematics, pin maps, mechanical constraints and physical validation results. Coordinate board choices with firmware rather than assuming prototype pin assignments are final.
+Review the [decision log, risks and bring-up gates](architecture-v1/07-INTEGRATION.md), reconcile the [interface contracts](architecture-v1/04-INTERFACES.md) with firmware and Stem Engine, and validate the recommended processor, audio and power architecture before schematic capture. Onboard ML remains unvalidated; the working Mac separator remains the first prototype's preparation path.
+
+## Validation
+
+The architecture documents record manufacturer sources and analytical budgets. Internal package links were checked. No physical electrical, acoustic, thermal or embedded ML tests have been performed; see the package README for evidence and limitations.
 
 ## Documentation
 
