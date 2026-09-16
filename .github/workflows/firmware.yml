@@ -38,3 +38,20 @@ jobs:
         run: |
           python3 firmware/teensy/tools/make_demo_assets.py firmware/teensy/demo-assets
           python3 firmware/teensy/tools/validate_prepared.py firmware/teensy/demo-assets/prepared
+
+  integration:
+    name: Cross-component contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Install host integration dependencies (no models)
+        run: |
+          python3 -m venv .integration-venv
+          .integration-venv/bin/python -m pip install -e './services/stem-engine[test]' -r services/preparation-adapter/requirements.txt
+      - name: Check native engine and P1 handoff
+        run: |
+          .integration-venv/bin/python -m pytest services/stem-engine/tests -q
+          make integration-test PYTHON="$PWD/.integration-venv/bin/python"

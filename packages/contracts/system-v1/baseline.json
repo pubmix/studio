@@ -1,0 +1,103 @@
+{
+  "revision": "I0.1",
+  "hardware_status": "recommended_unbuilt",
+  "roles": [
+    "VOCALS",
+    "MELODY",
+    "BASS",
+    "RHYTHM"
+  ],
+  "lane_order": [
+    "TOP_BUTTON",
+    "PUSH_ENCODER",
+    "FADER",
+    "BOTTOM_BUTTON"
+  ],
+  "native": {
+    "schema": "studio.stems.v1",
+    "encoding": "FLOAT32",
+    "sample_rate": "source",
+    "channels": [
+      1,
+      2
+    ],
+    "role_field": "name"
+  },
+  "prepared": {
+    "api_version": 1,
+    "profile": "STUDIO-P1",
+    "sample_rate": 44100,
+    "channels": 2,
+    "bits": 16,
+    "block_frames": 128,
+    "set_id_max": 4294967295,
+    "role_field": "role",
+    "stem_bytes_per_second": 705600
+  },
+  "processors": {
+    "realtime": "Teensy 4.1",
+    "application_target": "CM5 8 GB",
+    "preparation_prototype": "Mac"
+  },
+  "audio_channels": [
+    "MAIN_L",
+    "MAIN_R",
+    "HP_L",
+    "HP_R"
+  ],
+  "pins": {
+    "midi_rx": 0,
+    "midi_tx": 1,
+    "encoder1_a": 2,
+    "encoder1_b": 3,
+    "encoder2_a": 4,
+    "encoder2_b": 5,
+    "encoder3_a": 6,
+    "encoder3_b": 9,
+    "encoder4_a": 10,
+    "encoder4_b": 11,
+    "main_dac": 7,
+    "adc": 8,
+    "fader1": 14,
+    "fader2": 15,
+    "fader3": 16,
+    "fader4": 17,
+    "audio_power_sda": 18,
+    "audio_power_scl": 19,
+    "lrclk": 20,
+    "bclk": 21,
+    "charge_disable": 22,
+    "mclk": 23,
+    "panel_scl": 24,
+    "panel_sda": 25,
+    "ap_rx": 28,
+    "ap_tx": 29,
+    "power_fault": 30,
+    "audio_unmute": 31,
+    "hp_dac": 32,
+    "hp_enable": 33,
+    "power_good": 34,
+    "power_release": 35,
+    "power_button": 38,
+    "hp_present": 39,
+    "panel_interrupt": 40
+  },
+  "reserved_edge_pins": [
+    12,
+    13,
+    26,
+    27,
+    36,
+    37,
+    41
+  ],
+  "current": {
+    "delay_bytes_ram2": 262144,
+    "queue_usable_blocks": 3,
+    "button_debounce_ms": 12,
+    "psram_used": false,
+    "physical_headphone_connected": false,
+    "ap_link_implemented": false,
+    "manifest_catalog_implemented": false
+  }
+}

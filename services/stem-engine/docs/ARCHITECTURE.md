@@ -8,6 +8,10 @@ Input MP3/WAV is decoded once. Outputs retain its decoded sample rate, frame cou
 
 FLOAT32 WAV preserves relative levels and estimates above 0 dBFS without independent stem clipping/rescaling. Playback must provide suitable mix headroom. No mastering limiter is applied to individual stems. `metadata.json` records per-stem peaks, hashes, settings, timing and reconstruction error.
 
+## Firmware handoff
+
+Native results are archival outputs, not directly playable by the P1 firmware reader. Pass the completed directory to the [preparation adapter](../../preparation-adapter/README.md), which produces 44.1k stereo PCM16 with shared gain and frame grid. Preserve metadata.json and native WAVs. Processor and interface authority: [shared architecture](../../../docs/SYSTEM_ARCHITECTURE.md). Mac is the current runtime; CM5 remains qualification work.
+
 ## Presets
 
 - Fast: a single htdemucs pass.

@@ -2,7 +2,7 @@
 
 ## Physical lanes
 
-Hardware scanners supply normalized `ControlEvent`s. Press events are edges, not held-button repetitions; button release does not terminate a one-shot. Encoder detents are signed integers; faders are normalized 0–1. Debounce defaults to 12 ms and quadrature uses four transitions per detent; these are test defaults pending actual controls.
+Hardware scanners supply normalized `ControlEvent`s. Press events are edges, not held-button repetitions; button release does not terminate a one-shot. Encoder detents are signed integers; faders are normalized 0–1. Debounce defaults to 12 ms and quadrature uses four transitions per detent; these are test defaults pending actual controls. H0.1 proposes faster debounce and a 15-pulse/30-detent encoder; qualify both before binding drivers. Current 12 ms debounce cannot meet the proposed ≤10 ms response target.
 
 | Control | Dub | Jam proposed mapping (opt-in) | Home/Files/Settings | DAW |
 |---|---|---|---|---|

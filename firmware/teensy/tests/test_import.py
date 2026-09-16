@@ -18,5 +18,15 @@ class ImportTests(unittest.TestCase):
  def test_rate(self):self.manifest['sample_rate']=48000;self.save();self.assertRaises(ValueError,module.validate,self.root)
  def test_count(self):self.manifest['frames']=33;self.save();self.assertRaises(ValueError,module.validate,self.root)
  def test_hash(self):self.manifest['stems'][0]['sha256']='wrong';self.save();self.assertRaises(ValueError,module.validate,self.root)
+ def test_uint32_id(self):
+  for value in (True,0,-1,4294967296):
+   self.manifest['set_id']=value;self.save();self.assertRaises(ValueError,module.validate,self.root)
+  self.manifest['set_id']=4294967295;self.save();self.assertEqual(module.validate(self.root)['set_id'],4294967295)
+ def test_json_boolean_constants(self):
+  for field in ('api_version','frames','alignment_offset_frames'):
+   old=self.manifest[field];self.manifest[field]=bool(old);self.save();self.assertRaises(ValueError,module.validate,self.root);self.manifest[field]=old
+ def test_present_invalid_hash(self):
+  for value in ('',None,False):
+   self.manifest['stems'][0]['sha256']=value;self.save();self.assertRaises(ValueError,module.validate,self.root)
  def test_truncated(self):p=self.root/'bass.wav';p.write_bytes(p.read_bytes()[:-8]);self.assertRaises(ValueError,module.validate,self.root)
 if __name__=='__main__':unittest.main()

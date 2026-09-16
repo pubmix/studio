@@ -2,7 +2,7 @@
 
 ## Responsibility split
 
-The parallel engine owns separation, source decoding (MP3/WAV), model choice, semantic recombination, resampling, output encoding and any latency compensation. This firmware never runs ML. There is no requirement for cloud accounts or network connectivity in Dub playback.
+The Stem Engine owns source decoding, model choice, semantic recombination and native alignment. The [preparation adapter](../../services/preparation-adapter/README.md) owns conversion of its native FLOAT32 result into this P1 transfer profile, with shared resampling, gain and encoding. See the [shared system architecture](../../docs/SYSTEM_ARCHITECTURE.md) for the complete ownership boundary. This firmware never runs ML. There is no requirement for cloud accounts or network connectivity in Dub playback.
 
 STUDIO accepts exactly four assets, in this order:
 

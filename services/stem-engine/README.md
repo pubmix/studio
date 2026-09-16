@@ -1,5 +1,7 @@
 # STUDIO Stem Engine
 
+Integration authority: [STUDIO shared architecture I0.1](../../docs/SYSTEM_ARCHITECTURE.md). It distinguishes implemented behavior from proposed hardware and lists remaining integration gates.
+
 Local stem preparation for STUDIO, built for Apple Silicon Mac.
 
 Every successful job produces **exactly four synchronized FLOAT32 WAV stems**, in this order:
@@ -50,7 +52,7 @@ This project does not include Teensy firmware, real-time DSP or the full STUDIO 
 
 ## Firmware integration boundary
 
-These are FLOAT32 master stems. The existing firmware transfer profile requires 44.1 kHz stereo PCM16 and a separate manifest. A transfer exporter remains to be implemented; do not feed these masters directly to the firmware importer. See [integration notes](docs/REPOSITORY_INTEGRATION.md).
+These are FLOAT32 master stems. The existing firmware transfer profile requires 44.1 kHz stereo PCM16 and a separate manifest. Use the [preparation adapter](../preparation-adapter/README.md) to produce P1 media; do not feed these masters directly to the firmware importer. Device catalog/transfer integration remains open. See [integration notes](docs/REPOSITORY_INTEGRATION.md).
 
 ## Next steps
 
