@@ -1,5 +1,7 @@
 # STUDIO Hardware
 
+Integration authority: [STUDIO shared architecture I0.1](../docs/SYSTEM_ARCHITECTURE.md). It distinguishes implemented behavior from proposed hardware and lists remaining integration gates.
+
 ## Purpose
 
 Own the physical instrument: schematics, PCB layouts, enclosure and mechanical designs, board-specific pin maps, control wiring, audio I/O and power design.

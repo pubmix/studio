@@ -22,7 +22,9 @@ LOCKED: exactly four synchronized files, vocals.wav, melody.wav, bass.wav, rhyth
 
 Native FLOAT32 results remain canonical archival outputs. Do not force the ML engine to discard precision to match an early firmware reader.
 
-## 3. Preparation adapter: required bridge
+## 3. Preparation adapter: implemented host prototype
+
+See the [preparation component](../../services/preparation-adapter/README.md) and [shared baseline](../../docs/SYSTEM_ARCHITECTURE.md). Conversion and synthetic validation are implemented. Its 128 MiB decoded-set bound limits 44.1k stereo tracks to about 95 seconds; long-track preparation remains open.
 
 Current firmware tools/validate_prepared.py expects api_version=1, positive integer set_id, 44,100 Hz, stereo PCM16, zero alignment offset and entries called **role**. This is not the native ML schema.
 
@@ -47,10 +49,10 @@ Existing numeric set_id should be allocated through a durable collision-free reg
 - 128 sample frames per render block in P1. Interleaving, slot width, signedness and channel mapping belong to a named AudioProfile.
 - Teensy owns a monotonic 64-bit audio frame counter and stream_epoch. Start/seek applies to all four stems at one shared frame index.
 - Rendering consumes prepared blocks in RAM. Disk reads, XML/JSON parsing, allocation, UI and ML never execute in an audio callback.
-- Fader gain and FX-tail state are independent. Effect replacement must have a bounded tail/crossfade policy; no implicit state reset from a UI redraw.
+- Fader gain and FX-tail state are independent. Current firmware preserves tails on fader cuts/FX disable, but algorithm-switch tail handoff remains OPEN. Effect replacement must have a bounded tail/crossfade policy; no implicit state reset from a UI redraw.
 - Output limiter/gain and headphone mute are independent. Preview cannot reach main by default.
 - Maximum voices/effects/recording streams are capabilities, not unbounded dynamic promises. Reject an unsupported graph before activation.
-- Underflow: one shared fault position; fade the affected prepared set together and stop/rebuffer it. Never resume individual stems at different times or repeat stale buffers. Existing FX tails may decay.
+- Target underflow (OPEN, not current firmware behavior): one shared fault position; fade the affected prepared set together and stop/rebuffer it. Never resume individual stems at different times or repeat stale buffers. Existing FX tails may decay.
 - Reset/clock fault: hardware mute is asserted; reinitialization begins with silence.
 
 ## 5. AP ↔ Teensy control contract

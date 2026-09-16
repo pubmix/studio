@@ -13,3 +13,5 @@ The current three aspects are:
 - [Stem Engine](services/stem-engine/README.md)
 
 Follow [component contribution guidance](docs/CONTRIBUTING_COMPONENTS.md) for layout and integration. Preserve the universal stem order: VOCALS, MELODY, BASS, RHYTHM.
+
+Read [shared architecture](docs/SYSTEM_ARCHITECTURE.md) before cross-component changes. Update shared contracts and run make integration-test when interfaces change; preserve native/P1 separation and prototype-versus-target status.

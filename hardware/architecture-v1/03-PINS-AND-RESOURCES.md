@@ -53,7 +53,9 @@ Faders are **control voltages**, not analog audio paths. Use 10 kΩ linear pots 
 
 Fallback external ADC: ADS7953, SPI, with suitable reference/input buffers and redesigned pin allocation. It is not a drop-in alongside the current pin map. Do not specify ADS1115 at 860 total samples/s as though it supplies 1 kHz per fader.
 
-Panel scanning: buttons 1 kHz foreground tick, press qualification initially 3–5 ms, release debounce separately; encoder edges captured promptly and decoded outside audio ISR. No blocking I2C inside GPIO interrupts. LED driver updates ≤100 Hz, batched. If a button read uses 45–54 I2C clocks, it takes ~113–135 µs at 400 kHz: reserve <30% panel bus utilization including status/LED writes.
+Current firmware uses 12 ms debounce and four quadrature transitions per detent. Neither is a binding for the proposed panel. The 15-pulse/30-detent candidate requires measured detent-phase calibration; the ≤10 ms response target cannot be claimed with the 12 ms default.
+
+Target panel scanning (driver not implemented): buttons 1 kHz foreground tick, press qualification initially 3–5 ms, release debounce separately; encoder edges captured promptly and decoded outside audio ISR. No blocking I2C inside GPIO interrupts. LED driver updates ≤100 Hz, batched. If a button read uses 45–54 I2C clocks, it takes ~113–135 µs at 400 kHz: reserve <30% panel bus utilization including status/LED writes.
 
 ## 3. Buses and addresses
 

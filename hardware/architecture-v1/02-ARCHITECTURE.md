@@ -109,7 +109,9 @@ MicroSD is always owned by Teensy. CM5 sends directory/file requests to it; no t
 
 ## 7. Memory reservations
 
-Planning allocations, not linker measurements:
+Target allocations after a firmware memory refactor, not linker measurements. Current AudioEngine occupies RAM2 and includes 256 KiB of fixed delays; it does not use PSRAM. Adding this target RAM2 allocation to those existing buffers exceeds 512 KiB. Move delay storage to the PSRAM pool and verify actual link/runtime placement before adopting this table. See [shared baseline](../../docs/SYSTEM_ARCHITECTURE.md).
+
+Target reservations:
 
 | Region | Reservations | Remaining / conditions |
 |---|---|---|

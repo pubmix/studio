@@ -36,3 +36,7 @@ Include:
 - Open decisions and next steps.
 
 Current aspect entry points: [Firmware](../firmware/README.md), [Hardware](../hardware/README.md), [Stem Engine](../services/stem-engine/README.md). Firmware-specific implementation instructions remain in [Teensy](../firmware/teensy/README.md). This convention applies to future aspects as they are added.
+
+## Shared integration baseline
+
+Use [SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md) before changing cross-component interfaces. Native separator outputs and firmware media are distinct schemas connected by services/preparation-adapter. Run make integration-test with component checks. Hardware targets remain labeled unimplemented until drivers and benchmarks exist.

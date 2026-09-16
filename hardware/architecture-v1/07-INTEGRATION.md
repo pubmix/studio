@@ -151,7 +151,7 @@ No hardware results are claimed here. If tests fail, revise the architecture/pro
 - **Phase D — PCB layout:** only when mechanical constraints, stackup, connectors and thermal arrangement are real.
 - **Phase E — fabrication package and physical validation:** reviewed Gerbers/drill/assembly/BOM, then assembly, test and revisions.
 
-Current authorization ends with architecture/research/documentation and prototype planning. This package is sufficient to begin a disciplined bench build, but it does not certify an unbuilt V1 or authorize fabrication.
+This phase describes architecture/research/documentation and prototype planning; subsequent user requests determine authorization for later work. This package is sufficient to begin a disciplined bench build, but it does not certify an unbuilt V1 or authorize fabrication.
 
 ### Document validation performed
 
@@ -160,7 +160,7 @@ Confirmed eight linked Markdown documents, no broken relative document links, 60
 ## 6. Integration checklist
 
 1. Adopt H0.1 and P1 provisionally; retain LOCKED product requirements separately.
-2. Implement/accept preparation conversion without altering native separator outputs.
+2. Review the implemented [preparation adapter](../../services/preparation-adapter/README.md) and cross-component tests; retain native outputs and resolve its long-track limit.
 3. Add block-prefetch and timestamp/capability boundaries to firmware.
 4. Qualify dual DAC/ADC wiring and independent preview.
 5. Measure DSP/card/PSRAM before fixing voice/FX/loop limits.

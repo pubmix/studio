@@ -1,4 +1,6 @@
 # STUDIO — V1 hardware architecture
+
+Integration authority: [STUDIO shared architecture I0.1](../../docs/SYSTEM_ARCHITECTURE.md). It distinguishes implemented behavior from proposed hardware and lists remaining integration gates.
 Revision 0.1 • 14 September 2026 (Pacific) • Architecture proposal, not fabrication release
 
 ## Recommendation
@@ -30,7 +32,7 @@ The available conversation API returned no accessible attachments. Earlier refer
 ## Key convergence findings
 
 - Firmware already has separate main and headphone audio frames but board wiring is disabled/unassigned.
-- Stem Engine FLOAT32/source-rate output does **not** meet firmware's current PCM16/44.1 kHz/stereo import contract. A versioned preparation adapter is required.
+- Stem Engine FLOAT32/source-rate output does **not** meet firmware's current PCM16/44.1 kHz/stereo import contract. The versioned host preparation adapter now bridges these formats; see the shared baseline for its track-length limit and the pending device catalog.
 - The current ML runtime's MLX backend is Apple-specific; it cannot simply be copied to CM5 or Jetson.
 - The firmware's current audio output adapter quantizes to 16 bits. Selecting 24-bit converters alone does not deliver a 24-bit end-to-end instrument.
 - No scope has been silently removed: ambitious DSP, polyphony, DAW behavior, stylus precision and onboard ML remain explicit validation or product-definition gates.
