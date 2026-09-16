@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>STUDIO · Four lanes. Endless possibilities.</title><link rel="stylesheet" href="style.css"></head>
+<body><main class="instrument">
+<header><a class="brand" href="./">STUDIO<span>PORTABLE MUSIC WORKSTATION</span></a><div class="connection"><i></i> BROWSER PREVIEW <span>Teensy disconnected</span></div><button id="save">Save session</button></header>
+<section class="screen" aria-label="Touchscreen">
+<nav aria-label="Modes"><div id="modes"></div><span class="project">UNTITLED SESSION <span id="saved">LOCAL</span></span></nav>
+<div class="screen-body">
+<section id="dub" class="page"><div class="section-head"><div><p class="eyebrow">FOUR STEMS. ONE INSTRUMENT.</p><h1>Make it your own.</h1><p class="muted" id="track-name">A little space. A little echo. Find your groove.</p></div><button id="demo" class="accent">Load demo ↗</button></div><div id="waves"></div></section>
+<section id="jam" class="page" hidden><p class="eyebrow">SOUND PLAYGROUND</p><h1>Play a little.</h1><p class="muted">Touch the pads to play a synth. Browser audition through the master output.</p><div id="pads"></div><p class="muted">Jam pad controls are a UI prototype; physical lane mapping remains open.</p></section>
+<section id="daw" class="page" hidden><p class="eyebrow">ARRANGEMENT</p><h1>Room to grow.</h1><p class="muted">The DAW workflow is still being designed. Use DUB for synchronized playback and mixing, or JAM to audition notes.</p></section>
+<section id="files" class="page" hidden><p class="eyebrow">YOUR SOUND LIBRARY</p><h1>Bring your stems.</h1><p class="muted">Assign four synchronized audio files below. All four must have the same decoded length. Audio stays on this device.</p><div id="imports"></div><button id="load-files" class="accent">Load four stems</button><p class="muted">Browser audition only. Separation, P1 export and Teensy card transfer use the existing preparation tools; this UI does not perform them.</p></section>
+<section id="settings" class="page" hidden><p class="eyebrow">MAKE YOURSELF AT HOME</p><h1>Your STUDIO.</h1><label class="setting">Appearance <select id="theme"></select></label><div class="setting">Audio engine <span>Web Audio · browser output</span></div><div class="setting">Device connection <span>Offline · hardware bridge pending</span></div><div class="setting">Session storage <span>Mix, tempo and theme saved locally; audio is not saved.</span></div></section>
+</div>
+<div class="transport"><button id="play" class="play" aria-label="Play">▶</button><button id="stop" aria-label="Stop and rewind">■</button><div class="time"><b id="position">00:00</b><span id="duration"> / 00:00</span></div><input id="seek" aria-label="Playback position" type="range" min="0" max="1" step=".001" value="0"><label class="tempo"><input id="bpm" type="number" min="20" max="300" value="100" aria-label="Tempo"> BPM</label><div class="meter"><span>MAIN</span><meter id="meter" min="0" max="1" value="0"></meter></div></div>
+</section>
+<div class="panel-heading"><span>PERFORMANCE CONTROLS</span><span>DRY FADERS · INDEPENDENT ECHO TAILS</span></div>
+<section id="lanes" aria-label="Four performance lanes"></section>
+<footer><span><i class="dot"></i> LOCAL AUDIO · NO UPLOADS</span><span id="status" role="status" aria-live="polite">Load the demo or your own synchronized stems to begin.</span><span>STUDIO / 01</span></footer>
+</main>
+<dialog id="fx-dialog"><button id="close-fx" class="close" aria-label="Close effect editor">×</button><p class="eyebrow">EFFECT DESIGN</p><h2 id="fx-title">Dub echo</h2><p>Push opens this editor. Turn the knob to change echo intensity.</p><label>Echo intensity <input id="fx-amount" type="range" min="0" max="100"></label><p class="muted">Echo follows tempo. FX off stops new input; existing repeats decay. Faders control dry audio only.</p></dialog>
+<script type="module" src="app.js"></script></body></html>
