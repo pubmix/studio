@@ -297,16 +297,19 @@ void drawClock(bool force) {
 
 void drawTransport(bool splitPlay) {
   s_splitPlay = splitPlay;
+  const bool saving = g.uploadPercent >= 0;
+  char savingLabel[24];
+  snprintf(savingLabel, sizeof(savingLabel), "SAVING WAV %d%%", g.uploadPercent);
   setCanvas(kVisible);
   fillRect(0, kTopBarTop, kW - 1, kTopBarBottom, rgb565(kTransportBg));
   fillRect(0, kTransportTop - 4, kW - 1, kH - 1, rgb565(kTransportBg));
   if (splitPlay) {
     const teensylink::Drums& d = teensylink::state().drums;
-    drawButton(kPatternPlayBtn, d.previewOn ? "STOP" : "PATTERN", fontLarge(), rgb565(0xffffff),
+    drawButton(kPatternPlayBtn, saving ? "SAVING" : d.previewOn ? "STOP" : "PATTERN", fontLarge(), rgb565(0xffffff),
                rgb565(d.previewOn ? 0xc06a00 : 0x7a3ec0));
     // REC: dark red when idle, orange while counting in, bright red with a white frame while recording.
     const uint32_t recFill = d.countIn ? 0xe08a00 : (d.recording ? 0xff2b2b : 0x8a1c1c);
-    drawButton(kRecBtn, d.countIn ? "COUNT" : "REC", fontLarge(), rgb565(0xffffff), rgb565(recFill));
+    drawButton(kRecBtn, saving ? "WAIT" : d.countIn ? "COUNT" : "REC", fontLarge(), rgb565(0xffffff), rgb565(recFill));
     if (d.recording || d.countIn) {
       const uint16_t w = rgb565(0xffffff);
       fillRect(kRecBtn.x1, kRecBtn.y1, kRecBtn.x2, kRecBtn.y1 + 3, w);
@@ -318,12 +321,12 @@ void drawTransport(bool splitPlay) {
                rgb565(d.clickOn ? 0x1f7a3d : 0x444444));
     drawButton(kPadModeBtn, d.padMode == 1 ? "NOTE PADS" : "DRUM PADS", fontSmall(), rgb565(0xffffff),
                rgb565(d.padMode == 1 ? 0x5a3aa0 : 0x9a5a14));
-    drawButton(kSongPlayBtn, g.playing ? "PAUSE SONG" : "PLAY SONG", fontLarge(), rgb565(0xffffff),
-               rgb565(g.playing ? 0x8a5a00 : 0x1f7a3a));
+    drawButton(kSongPlayBtn, saving ? savingLabel : g.playing ? "PAUSE SONG" : "PLAY SONG", saving ? fontSmall() : fontLarge(), rgb565(0xffffff),
+               rgb565(saving ? 0x444444 : g.playing ? 0x8a5a00 : 0x1f7a3a));
     drawButton(kSplitRewindBtn, "REWIND", fontLarge(), rgb565(0xffffff), rgb565(0x333333));
   } else {
-    drawButton(kPlayBtn, g.playing ? "PAUSE" : "PLAY", fontLarge(), rgb565(0xffffff),
-               rgb565(g.playing ? 0x8a5a00 : 0x1f7a3a));
+    drawButton(kPlayBtn, saving ? savingLabel : g.playing ? "PAUSE" : "PLAY", fontLarge(), rgb565(0xffffff),
+               rgb565(saving ? 0x444444 : g.playing ? 0x8a5a00 : 0x1f7a3a));
     drawButton(kRewindBtn, "REWIND", fontLarge(), rgb565(0xffffff), rgb565(0x333333));
   }
   drawClock(true);
@@ -372,6 +375,11 @@ TransportHit transportHit(int x, int y) {
   if (x >= kSlider.x1 - 24 && x <= kSlider.x2 + 24 && y >= kSlider.y1 - 4 && y <= kSlider.y2 + 4) {
     return TransportHit::Slider;
   }
+  // The Teensy rejects playback during SD writes. Match that guard visibly here.
+  if (g.uploadPercent >= 0 &&
+      ((!s_splitPlay && inRect(kPlayBtn, x, y)) ||
+       (s_splitPlay && (inRect(kPatternPlayBtn, x, y) || inRect(kRecBtn, x, y) ||
+                       inRect(kSongPlayBtn, x, y))))) return TransportHit::None;
   if (s_splitPlay) {
     if (inRect(kPatternPlayBtn, x, y)) return TransportHit::PlayPattern;
     if (inRect(kRecBtn, x, y)) return TransportHit::Record;

@@ -9,6 +9,7 @@
 #include "screen_mixer.h"
 #include "screen_pattern.h"
 #include "screen_wifi.h"
+#include "wifi_upload.h"
 #include "screen_stems.h"
 #include "screen_playlist.h"
 #include "teensy_link.h"
@@ -27,6 +28,7 @@ bool touching = false;
 uint32_t lastTouchMs = 0;
 
 bool wasPlayingDrawn = false;
+int wasUploadPercentDrawn = -1;
 int wasPreviewDrawn = 0;  // drum loop / record state the transport was last drawn for
 
 int drumTransportState() {
@@ -424,6 +426,9 @@ void begin() {
 }
 
 void update() {
+  const auto upload = wifiup::progress();
+  const bool saving = upload.stage == wifiup::Stage::Starting || upload.stage == wifiup::Stage::Sending;
+  g.uploadPercent = saving ? (upload.size ? static_cast<int>(100ULL * upload.sent / upload.size) : 0) : -1;
   uint32_t now = millis();
   updateLink(now);
 
@@ -473,7 +478,8 @@ void update() {
   if (inProject(current)) {
     int previewNow = drumTransportState();
     bool splitPlay = current == Screen::Pattern;
-    if (g.playing != wasPlayingDrawn || (splitPlay && previewNow != wasPreviewDrawn)) {
+    if (g.playing != wasPlayingDrawn || g.uploadPercent != wasUploadPercentDrawn || (splitPlay && previewNow != wasPreviewDrawn)) {
+      wasUploadPercentDrawn = g.uploadPercent;
       wasPlayingDrawn = g.playing;
       wasPreviewDrawn = previewNow;
       drawTransport(splitPlay);

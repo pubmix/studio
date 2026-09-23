@@ -168,3 +168,13 @@ reported touch/link OK. Actual UART state showed pan -750,500,0,0 in test projec
 MOD0923073143 before and after two close/reopen cycles. The recorder was restored
 to a live, valid main menu with zero dropped mirror records. Host touch and audio
 gain tests passed; physical finger interaction and listening remain unverified.
+
+## Playback while transferring WAVs
+
+The Teensy cannot stream SD audio while a Wi-Fi transfer writes the same card.
+Previously it silently ignored Play during a transfer. The transport now shows
+`SAVING WAV n%`, disables song/pattern/record start targets, and refreshes back to
+normal controls when a transfer completes, fails, or is cancelled. It does not
+queue unexpected playback. Host regression checks cover the blocked targets and
+recovery; the ESP32 build passed. The user's active transfer was explicitly stopped
+before deployment, preserving completed WAVs and discarding the incomplete file.

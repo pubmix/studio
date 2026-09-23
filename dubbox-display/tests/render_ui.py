@@ -69,6 +69,15 @@ void sendVolume(int){} void sendSeek(uint32_t){} void sendListProjects(){}
 int main(int argc,char**argv){
 using namespace ui;
 theme::begin(); assert(theme::current()==theme::Skin::Modern);
+// Playback hit targets recover when SD transfer ends, including failed/cancelled uploads.
+g.uploadPercent=-1; drawTransport(false); assert(transportHit(317,665)==TransportHit::Play);
+g.uploadPercent=37; drawTransport(false); assert(transportHit(317,665)==TransportHit::None);
+assert(transportHit(811,695)==TransportHit::Rewind);
+drawTransport(true); assert(transportHit(100,680)==TransportHit::None);
+assert(transportHit(300,680)==TransportHit::None); assert(transportHit(800,680)==TransportHit::None);
+g.uploadPercent=-1; drawTransport(true); assert(transportHit(100,680)==TransportHit::PlayPattern);
+assert(transportHit(300,680)==TransportHit::Record); assert(transportHit(800,680)==TransportHit::Play);
+
 assert(!theme::select(static_cast<theme::Skin>(9)));
 for(int i=0;i<4;++i){assert(theme::select(static_cast<theme::Skin>(i)));theme::begin();assert(static_cast<int>(theme::current())==i);}
 Preferences::fail=true;assert(!theme::select(theme::Skin::Modern));Preferences::fail=false;

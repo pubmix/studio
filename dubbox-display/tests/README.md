@@ -56,3 +56,8 @@ stem screen and keyboard with a simulated companion. Assertions cover menu entry
 rights gating, depth/transfer selection, processing/delivery and cancellation. Four
 additional PPM previews are emitted for visual QA; these are not hardware captures.
 All assertions passed and layouts were inspected on 2026-09-23.
+
+Transport regression assertions in `render_ui.py` exercise the user's Play touch
+coordinates, blocked song/pattern/record buttons during SD writes, and recovery
+when saving ends. The test uses the real transport drawing and hit-test functions;
+it does not claim a physical finger or listening test.

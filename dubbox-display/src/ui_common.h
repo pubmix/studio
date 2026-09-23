@@ -31,6 +31,7 @@ enum class Screen { Menu, NewProject, LoadProject, Mixer, Playlist, Pattern, Fil
 struct Shared {
   bool linked = false;
   bool playing = false;
+  int uploadPercent = -1;  // -1: idle; 0..100: SD write blocks playback
   uint32_t posMs = 0;
   uint32_t songMs = 8000;
   int volPermille = 1000;     // master headphone volume
