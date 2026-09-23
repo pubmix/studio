@@ -1,5 +1,7 @@
 # STUDIO V1 — portable firmware prototype
 
+Integration authority: [STUDIO shared architecture I0.1](../../docs/SYSTEM_ARCHITECTURE.md). It distinguishes implemented behavior from proposed hardware and lists remaining integration gates.
+
 This is the **Teensy implementation track**, independent of the ML separator. It delivers a working C++ core, command-line simulator, Teensy sketch, prepared-WAV importer, DSP, sequencing, storage adapters and tests. It is an engineering prototype, **not finished production firmware or a completed touchscreen application**.
 
 Start with [scope and open decisions](docs/SCOPE.md), [controls](docs/CONTROLS.md), [architecture](docs/ARCHITECTURE.md), [audio graph](docs/AUDIO.md), [data model](docs/DATA_MODEL.md), [integration](INTEGRATION.md), and [validation results](docs/VALIDATION.md).

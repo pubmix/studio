@@ -1,5 +1,7 @@
 # STUDIO Firmware
 
+Integration authority: [STUDIO shared architecture I0.1](../docs/SYSTEM_ARCHITECTURE.md). It distinguishes implemented behavior from proposed hardware and lists remaining integration gates.
+
 ## Purpose
 
 Own the real-time instrument software: synchronized playback, mixing, effects, controls, sequencing, storage and board adapters. Neural stem separation runs in the [Stem Engine](../services/stem-engine/README.md) before performance.

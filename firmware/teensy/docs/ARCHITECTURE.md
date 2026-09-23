@@ -10,6 +10,10 @@ This avoids SD calls, allocation, serialization, undo snapshots, and user-interf
 
 `AudioEngine` resides in Teensy RAM2 (`DMAMEM`) because its four fixed delay buffers use 262,144 bytes. Control state/history remains in RAM1. No external PSRAM is required for the demonstrated short-delay graph. This arrangement was verified by compilation and memory reports, not physical latency tests.
 
+## Hardware convergence
+
+The [shared baseline](../../../docs/SYSTEM_ARCHITECTURE.md) maps this prototype to H0.1 Teensy + CM5. IDisplay is the local test view; the rich UI belongs to CM5. The planned UART/USB semantic link, card service, power HAL and PSRAM allocator do not exist yet. Keep BoardConfig disabled until wiring/driver review. Hardware memory reservations assume a future delay-buffer refactor; they are not additive to current RAM2 delays.
+
 ## Modules
 
 | Module | Responsibility |

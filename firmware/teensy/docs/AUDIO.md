@@ -48,7 +48,7 @@ Two-octave input maps 24 adjacent semitones; octave moves the window. Major, Min
 
 ## Master and preview
 
-Main stereo metering is pre-limiter absolute peak with decay; clipping latches until cleared. Master safety uses instantaneous stereo-linked gain at .98 and rejects nonfinite samples. It is a safety ceiling, not a lookahead mastering limiter. Preview goes to the headphone sum by default; `previewToMain` is explicit. The Teensy bridge exports channels 0/1 Main and 2/3 Headphones, but only the optional Main I²S connection is present. Actual headphone hardware/routing remains unspecified.
+Main stereo metering is pre-limiter absolute peak with decay; clipping latches until cleared. Master safety uses instantaneous stereo-linked gain at .98 and rejects nonfinite samples. It is a safety ceiling, not a lookahead mastering limiter. Preview goes to the headphone sum by default; `previewToMain` is explicit. The Teensy bridge exports channels 0/1 Main and 2/3 Headphones, but only the optional Main I²S connection is present. H0.1 recommends a second independent DAC on SAI1 TX32; physical driver, mute sequencing and measurements remain unimplemented. See [shared baseline](../../../docs/SYSTEM_ARCHITECTURE.md).
 
 ## Budgets
 
