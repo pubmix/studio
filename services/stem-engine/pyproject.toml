@@ -4,19 +4,24 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "studio-stem-engine"
-version = "0.1.0"
-description = "Local, backend-independent four-lane STUDIO stem preparation"
+version = "0.2.0"
+description = "Configurable STUDIO stem preparation with four-lane compatibility"
 requires-python = ">=3.11"
 dependencies = ["numpy>=2,<3", "scipy>=1.12", "soundfile>=0.13", "imageio-ffmpeg>=0.6"]
 
 [project.optional-dependencies]
 demucs = ["demucs==4.1.0", "torch==2.5.1", "torchaudio==2.5.1"]
 mlx = ["mlx-audio-separator[convert]==0.1.5"]
+roformer = ["audio-separator[cpu]==0.45.0"]
 separator = ["audio-separator[cpu]==0.45.0"]
 test = ["pytest>=8"]
+cloud = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1", "yt-dlp[default]>=2025.9.5", "httpx>=0.27,<1"]
 
 [project.scripts]
 studio-stems = "studio_stem_engine.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["studio_stem_engine*"]
+
+[tool.setuptools.package-data]
+studio_stem_engine = ["local.html"]

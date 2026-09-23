@@ -1,0 +1,6 @@
+{
+  "studio-roformer": {
+    "backend": "roformer",
+    "model": "REPLACE_WITH_FULL_SOURCE_ROFORMER.ckpt"
+  }
+}

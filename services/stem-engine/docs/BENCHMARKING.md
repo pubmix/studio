@@ -17,3 +17,9 @@ With references it reports zero-mean, globally scaled SI-SDR and scale-sensitive
 Ablations: Fast, Balanced, Best; primary-only versus adding second-stage vocals (current Best adds them); melody/energy/no consistency; BS versus Mel-Band vocal models; four-source versus six-source instrument models; controlled weighted ensembles. Phase and gain must match before any waveform averaging.
 
 Listening rubric (blind matched-gain randomized A/B): vocal completeness/backing layers; vocal leakage into MELODY; missing chord notes; bass weight/808 sustain; drum attacks/cymbals; warbling and reverberant artifacts. Audition solos, reconstructed mix, and actual fader-mute/FX use. Report per-track failures as well as averages. A low reconstruction error is a correctness property, not a quality score.
+
+## Extended models
+
+See [extended benchmark and training interfaces](EXTENDED_STEMS.md). Use
+`benchmark.extended.example.json` for baseline, six-source and configured RoFormer
+comparisons. Fallback is disabled for benchmarks. Model weights and audio are external.

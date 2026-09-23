@@ -126,6 +126,7 @@ void DrumMachine::reset() {
   padNote_[2] = 67;
   padNote_[3] = 72;
   for (int i = 0; i < kMaxInstruments; ++i) {
+    inst_[i].setModular(false, modular::Patch());
     inst_[i].setPatch(SynthPatch());  // back to the default sound
     inst_[i].setEnabled(false);
   }
@@ -165,8 +166,9 @@ bool DrumMachine::patternEmpty(int pattern) const {
 
 // ---- Instruments ----
 
-bool DrumMachine::addInstrument() {
+bool DrumMachine::addInstrument(bool modular) {
   if (instCount_ >= kMaxInstruments) return false;
+  inst_[instCount_].setModular(modular, modular::Patch());
   inst_[instCount_].setPatch(SynthPatch());
   inst_[instCount_].setEnabled(true);
   for (int p = 0; p < kNumPatterns; ++p) noteCount_[p][instCount_] = 0;
@@ -186,6 +188,7 @@ bool DrumMachine::removeInstrument(int inst) {
     }
   }
   for (int i = inst; i + 1 < instCount_; ++i) {
+    inst_[i].setModular(inst_[i + 1].isModular(), inst_[i + 1].modularPatch());
     inst_[i].setPatch(inst_[i + 1].patch());
     for (int p = 0; p < kNumPatterns; ++p) {
       noteCount_[p][i] = noteCount_[p][i + 1];
@@ -731,6 +734,7 @@ uint32_t DrumMachine::signature() const {
   h = (h ^ static_cast<uint32_t>(bpm_)) * 16777619u;
   h = (h ^ static_cast<uint32_t>(instCount_)) * 16777619u;
   for (int inst = 0; inst < instCount_; ++inst) {
+    h = (h ^ modular::signature(inst_[inst].modularPatch()) ^ uint32_t(inst_[inst].isModular())) * 16777619u;
     for (int i = 0; i < Synth::kParams; ++i) h = (h ^ static_cast<uint32_t>(inst_[inst].param(i) + 100)) * 16777619u;
   }
   for (int i = 0; i < kPads; ++i) {

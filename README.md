@@ -11,13 +11,27 @@ STUDIO (formerly Dub Box) is a portable four-lane music instrument. This reposit
 | Area | Contents | Status |
 |---|---|---|
 | [firmware/teensy](firmware/teensy) | Teensy 4.1 sketch, portable C++ core, desktop simulator, tests and documentation | Prototype implemented; hardware untested |
-| [services/stem-engine](services/stem-engine) | Local audio preparation and AI/ML separation | Local prototype implemented; 20 tests and synthetic model inference passed |
+| [services/stem-engine](services/stem-engine) | Local audio preparation and AI/ML separation | Preparation + current WiFi adapter implemented; 41 tests and synthetic inference/export passed |
 | [packages/contracts](packages/contracts) | Versioned interfaces shared between components | Prepared-stem transfer schema v1 |
 | [apps](apps) | Future touchscreen/companion application code | Reserved |
 | [hardware](hardware) | Future schematics, PCB, enclosure and board configuration | Reserved |
 | [docs](docs) | Cross-project architecture and integration conventions | Initial guidance |
 
+## Current Dub-Box application
+
+The current hardware application lives in `dubbox-firmware` (Teensy audio and
+controls) and `dubbox-display` (ESP32 touchscreen and WiFi). See
+[DUBBOX_PROJECT_SUMMARY.md](DUBBOX_PROJECT_SUMMARY.md) for current wiring and features.
+The older `firmware/teensy` implementation below remains a separate prototype.
+
+The [Stem Engine](services/stem-engine/README.md) now connects to the active
+application through a PCM16 exporter and the existing WiFi uploader. Preparation
+runs locally on the computer; uploaded stems are selected in tracks 1–4 through
+the current touchscreen picker. See [integration architecture and usage](services/stem-engine/docs/REPOSITORY_INTEGRATION.md).
+
 ## Start here
+
+**Moving to another computer?** Follow [new-computer setup](docs/NEW_COMPUTER.md) for the companion, model downloads, device pairing, and both firmware uploads.
 
 - [Stem Engine quick start](services/stem-engine/README.md)
 - [Stem Engine verification](services/stem-engine/docs/VERIFICATION.md)

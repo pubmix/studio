@@ -1,4 +1,5 @@
 #pragma once
+#include "../../packages/modular/patch.h"
 #include <stdint.h>
 
 // UART link to the Teensy (see dubbox-firmware/src/esp_link.h for the protocol).
@@ -117,6 +118,7 @@ struct State {
   bool playing = false;
   uint32_t posMs = 0;
   uint32_t songMs = 0;
+  int panPermille[kNumTracks] = {};
   int faderPermille[kNumTracks] = {0, 0, 0, 0};
   int peakPermille[kNumTracks] = {0, 0, 0, 0};
   TrackInfo track[kNumTracks];
@@ -128,6 +130,8 @@ struct State {
   int beatMask = 0;  // per-track beat marker toggles saved with the project
   Beats beats[kNumTracks];
   Drums drums;
+  bool instrumentModular[kMaxInstruments] = {};
+  modular::Patch modularPatch[kMaxInstruments];
   SynthState synth[kMaxInstruments];  // the patch of each instrument
 };
 
@@ -191,6 +195,7 @@ void sendClipOffset(int track, int clip, int32_t offsetMs);
 void sendBeatFlag(int track, bool on);
 void sendAddFx(int track, int fxType);
 void sendActiveSlot(int track, int slot);
+void sendPan(int track, int pan);
 void sendWet(int track, int wetPermille);
 void sendBypass(int track, bool bypassed);
 
@@ -209,7 +214,8 @@ void resizePatClip(int index, int lenBars);
 
 // Instruments (synths). Each has its own sound and its own notes in every pattern. Notes follow the
 // Teensy's rules: they stay inside the bar and do not overlap another note of the same pitch.
-void addInstrument();            // appends one with the default sound (up to kMaxInstruments)
+void setModularPatch(int inst, const modular::Patch& patch);
+void addInstrument(bool modular = false);            // appends one with the default sound (up to kMaxInstruments)
 void removeInstrument(int inst); // deletes it and its notes; later ones move down
 void setNote(int pattern, int inst, int midi, int start, int len);  // add, or change the length of the note there
 void removeNote(int pattern, int inst, int midi, int start);

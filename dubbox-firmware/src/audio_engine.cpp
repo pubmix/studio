@@ -58,7 +58,11 @@ bool AudioEngine::begin() {
     patchSendIn_[i] = new AudioConnection(player_[i], 0, sendMix_[i], 0);
     sendMix_[i].gain(0, 0.0f);  // effect starts muted
 
-    wetSubMix_.gain(i, 0.0f);  // matches trackFxBypassed_[i]'s default (true)
+    wetTap_[i].gain(1.0f);
+    wetTapL_[i] = new AudioConnection(wetTap_[i], 0, wetSubMixL_, i);
+    wetTapR_[i] = new AudioConnection(wetTap_[i], 0, wetSubMixR_, i);
+    wetSubMixR_.gain(i, 0.0f);
+    wetSubMixL_.gain(i, 0.0f);  // matches trackFxBypassed_[i]'s default (true)
   }
 
   delayFeedbackMix_.gain(0, 1.0f);  // owning track's tap, always passes through
@@ -66,8 +70,8 @@ bool AudioEngine::begin() {
 
   patchDryToFinalL_ = new AudioConnection(mixerL_, 0, finalMixL_, 0);
   patchDryToFinalR_ = new AudioConnection(mixerR_, 0, finalMixR_, 0);
-  patchWetSubToFinalL_ = new AudioConnection(wetSubMix_, 0, finalMixL_, 1);
-  patchWetSubToFinalR_ = new AudioConnection(wetSubMix_, 0, finalMixR_, 1);
+  patchWetSubToFinalL_ = new AudioConnection(wetSubMixL_, 0, finalMixL_, 1);
+  patchWetSubToFinalR_ = new AudioConnection(wetSubMixR_, 0, finalMixR_, 1);
   finalMixL_.gain(0, 1.0f);
   // The wet bus is boosted so effects stand out against the summed dry mix (see kWetMixBoost).
   finalMixL_.gain(1, kWetMixBoost);
@@ -375,10 +379,19 @@ void AudioEngine::resetCpuUsagePercentMax() { AudioProcessorUsageMaxReset(); }
 int AudioEngine::audioMemoryUsage() { return AudioMemoryUsage(); }
 int AudioEngine::audioMemoryUsageMax() { return AudioMemoryUsageMax(); }
 
+void AudioEngine::setTrackPan(int trackIndex, int value) {
+  if (trackIndex < 0 || trackIndex >= kNumTracks) return;
+  AudioNoInterrupts();
+  trackPan_[trackIndex] = constrain(value, -1000, 1000);
+  recomputeTrackGain(trackIndex);
+  AudioInterrupts();
+}
+
 void AudioEngine::recomputeTrackGain(int trackIndex) {
   float gain = trackFaderGain_[trackIndex] * trackCropGain_[trackIndex];
-  mixerL_.gain(trackIndex, gain);
-  mixerR_.gain(trackIndex, gain);
+  const float pan = trackPan_[trackIndex] / 1000.0f;
+  mixerL_.gain(trackIndex, gain * (pan > 0 ? 1.0f - pan : 1.0f));
+  mixerR_.gain(trackIndex, gain * (pan < 0 ? 1.0f + pan : 1.0f));
   applyTrackFxMixGain(trackIndex);
 }
 
@@ -390,7 +403,10 @@ void AudioEngine::applyTrackFxMixGain(int trackIndex) {
   float source = trackFxBypassed_[trackIndex]
                      ? trackFxMuteHold_[trackIndex]
                      : trackFaderGain_[trackIndex] * trackCropGain_[trackIndex];
-  wetSubMix_.gain(trackIndex, trackFxWetLevel_[trackIndex] * source);
+  const float gain = trackFxWetLevel_[trackIndex] * source;
+  const float pan = trackPan_[trackIndex] / 1000.0f;
+  wetSubMixL_.gain(trackIndex, gain * (pan > 0 ? 1.0f - pan : 1.0f));
+  wetSubMixR_.gain(trackIndex, gain * (pan < 0 ? 1.0f + pan : 1.0f));
 }
 
 void AudioEngine::setClipWindow(int trackIndex, int clip, uint32_t startMs, uint32_t endMs) {
@@ -563,7 +579,7 @@ bool AudioEngine::connectTrackFx(int trackIndex, int type,
           new AudioConnection(delay_, 0, delayFeedbackMix_, 1);
       patchDelayOut_ = downstream
                             ? new AudioConnection(delay_, 0, *downstream, 0)
-                            : new AudioConnection(delay_, 0, wetSubMix_, trackIndex);
+                            : new AudioConnection(delay_, 0, wetTap_[trackIndex], 0);
       return true;
     }
     case kFxFreeverb: {
@@ -581,7 +597,7 @@ bool AudioEngine::connectTrackFx(int trackIndex, int type,
       patchFreeverbTrackTap_ = new AudioConnection(upstream, 0, freeverb_, 0);
       patchFreeverbOut_ =
           downstream ? new AudioConnection(freeverb_, 0, *downstream, 0)
-                     : new AudioConnection(freeverb_, 0, wetSubMix_, trackIndex);
+                     : new AudioConnection(freeverb_, 0, wetTap_[trackIndex], 0);
       return true;
     }
     case kFxFlange:
@@ -590,7 +606,7 @@ bool AudioEngine::connectTrackFx(int trackIndex, int type,
       patchFlangeOut_[trackIndex] =
           downstream
               ? new AudioConnection(flange_[trackIndex], 0, *downstream, 0)
-              : new AudioConnection(flange_[trackIndex], 0, wetSubMix_, trackIndex);
+              : new AudioConnection(flange_[trackIndex], 0, wetTap_[trackIndex], 0);
       return true;
     case kFxChorus:
       patchChorusIn_[trackIndex] =
@@ -598,7 +614,7 @@ bool AudioEngine::connectTrackFx(int trackIndex, int type,
       patchChorusOut_[trackIndex] =
           downstream
               ? new AudioConnection(chorus_[trackIndex], 0, *downstream, 0)
-              : new AudioConnection(chorus_[trackIndex], 0, wetSubMix_, trackIndex);
+              : new AudioConnection(chorus_[trackIndex], 0, wetTap_[trackIndex], 0);
       return true;
   }
   return false;

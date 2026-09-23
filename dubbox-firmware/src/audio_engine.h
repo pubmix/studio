@@ -40,6 +40,8 @@ class AudioEngine {
   bool isTrackPlaying(int trackIndex);
   // Sets linear gain (0.0 = silent, 1.0 = unity) for a track's fader.
   void setTrackGain(int trackIndex, float gain);
+  void setTrackPan(int trackIndex, int permille);
+  int trackPan(int trackIndex) const { return trackPan_[trackIndex]; }
   // Master headphone volume (0.0-1.0, the SGTL5000's own volume register).
   void setMasterVolume(float volume01);
   float masterVolume() const { return masterVolume_; }
@@ -231,7 +233,11 @@ class AudioEngine {
 
   // One bus summing all tracks' effect outputs (each at its own wet level) into the final
   // mix, the way the dry mix is summed once via mixerL_/R_.
-  AudioMixer4 wetSubMix_;
+  AudioAmplifier wetTap_[kNumTracks];
+  AudioMixer4 wetSubMixL_, wetSubMixR_;
+  AudioConnection* wetTapL_[kNumTracks] = {};
+  AudioConnection* wetTapR_[kNumTracks] = {};
+  int trackPan_[kNumTracks] = {};
   AudioMixer4 finalMixL_;  // inputs: 0 dry, 1 wet, 2 drums, 3 piano
   AudioMixer4 finalMixR_;
   DrumMachine drums_;

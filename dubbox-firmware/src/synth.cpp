@@ -135,14 +135,16 @@ void Synth::begin() {
   fxPatch_[3] = new AudioConnection(filter_, 0, finalOut_, 0);  // filter output 0 = low-pass
   fxPatch_[4] = new AudioConnection(filter_, 0, chorusSend_, 0);
   fxPatch_[5] = new AudioConnection(filter_, 0, reverbSend_, 0);
+  modularConnection_ = new AudioConnection(modular_, 0, finalOut_, 1);
+  finalOut_.gain(1, 1.f);
   apply();
 }
 
 void Synth::apply() {
   const SynthPatch& p = patch_;
   // Oscillator balance: both at full level around the middle, fading one out towards the ends.
-  const float g1 = enabled_ ? fminf(1.0f, 2.0f * (100 - p.mix) / 100.0f) : 0.0f;
-  const float g2 = enabled_ ? fminf(1.0f, 2.0f * p.mix / 100.0f) : 0.0f;
+  const float g1 = (enabled_ && !modularMode_) ? fminf(1.0f, 2.0f * (100 - p.mix) / 100.0f) : 0.0f;
+  const float g2 = (enabled_ && !modularMode_) ? fminf(1.0f, 2.0f * p.mix / 100.0f) : 0.0f;
   osc2Ratio_ = powf(2.0f, p.oct2 + p.detune / 1200.0f);
   for (int v = 0; v < kVoices; ++v) {
     osc1_[v].begin(waveType(p.wave1));
@@ -163,21 +165,36 @@ void Synth::apply() {
 }
 
 void Synth::setEnabled(bool on) {
-  if (on == enabled_) return;
   enabled_ = on;
   AudioNoInterrupts();
-  if (on) {
-    fxPatch_[2] = new AudioConnection(sum_, 0, filter_, 0);
+  modular_.enabled = on && modularMode_;
+  if (!modular_.enabled) modular_.engine.silence();
+  if (on && !modularMode_) {
+    if (!fxPatch_[2]) fxPatch_[2] = new AudioConnection(sum_, 0, filter_, 0);
   } else {
-    delete fxPatch_[2];  // with no input the filter, chorus and reverb do no work
-    fxPatch_[2] = nullptr;
+    delete fxPatch_[2]; fxPatch_[2] = nullptr;
   }
   AudioInterrupts();
   apply();
 }
 
+bool Synth::setModular(bool on, const modular::Patch& p) {
+  if (!modular::valid(p)) return false;
+  AudioNoInterrupts();
+  if (on != modularMode_) {
+    modular_.engine.silence();
+    for (int v=0; v<kVoices; ++v) env_[v].noteOff();
+  }
+  modular_.engine.configure(p);
+  modularMode_ = on;
+  AudioInterrupts();
+  setEnabled(enabled_);
+  return true;
+}
+
 void Synth::noteOn(int voice, int midiNote) {
   if (voice < 0 || voice >= kVoices || !enabled_) return;
+  if (modularMode_) { AudioNoInterrupts(); modular_.engine.on(voice, midiNote); AudioInterrupts(); return; }
   const float freq = 440.0f * powf(2.0f, (midiNote - 69) / 12.0f);
   osc1_[voice].frequency(freq);
   osc2_[voice].frequency(freq * osc2Ratio_);
@@ -186,6 +203,7 @@ void Synth::noteOn(int voice, int midiNote) {
 
 void Synth::noteOff(int voice) {
   if (voice < 0 || voice >= kVoices) return;
+  if (modularMode_) { AudioNoInterrupts(); modular_.engine.off(voice); AudioInterrupts(); return; }
   env_[voice].noteOff();
 }
 

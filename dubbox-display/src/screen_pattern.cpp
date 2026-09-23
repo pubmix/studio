@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include "keyboard.h"
 #include "synth_panel.h"
+#include "modular_panel.h"
 #include "teensy_link.h"
 #include "ui_common.h"
 
@@ -78,6 +79,8 @@ constexpr uint32_t kBpmRepeatMs = 80;
 
 enum class View { Drums, Inst };
 enum class Mode { Sound, Roll, Keys };
+bool choosingInstrument = false;
+constexpr Rect chooseSynth={270,290,570,370},chooseModular={620,290,970,370},chooseCancel={470,410,770,465};
 View view = View::Drums;
 Mode mode = Mode::Sound;
 int curInst = 0;       // the instrument being viewed
@@ -124,6 +127,7 @@ Rect addRect(int count) {
 
 const teensylink::Drums& drums() { return teensylink::state().drums; }
 int instCount() { return drums().instCount; }
+bool modularInstrument() { return teensylink::state().instrumentModular[curInst]; }
 
 bool patternEmpty(int p) {
   const teensylink::Drums& d = drums();
@@ -419,7 +423,7 @@ void drawTools() {
   const int n = instCount();
   for (int i = 0; i < n; ++i) {
     char lab[8];
-    snprintf(lab, sizeof(lab), "SYN %d", i + 1);
+    snprintf(lab, sizeof(lab), "%s %d", teensylink::state().instrumentModular[i] ? "MOD" : "SYN", i + 1);
     const bool on = view == View::Inst && i == curInst;
     drawButton(instTabRect(i), lab, fontSmall(), rgb565(on ? 0x000000 : 0xffffff), rgb565(on ? kNoteRgb : 0x4a2a7a));
   }
@@ -435,7 +439,7 @@ void drawSubBar() {
     Rect r;
     const char* label;
     Mode m;
-  } modes[3] = {{kModeSound, "SOUND", Mode::Sound}, {kModeRoll, "ROLL", Mode::Roll}, {kModeKeys, "KEYS", Mode::Keys}};
+  } modes[3] = {{kModeSound, modularInstrument() ? "PATCH" : "SOUND", Mode::Sound}, {kModeRoll, "ROLL", Mode::Roll}, {kModeKeys, "KEYS", Mode::Keys}};
   for (const auto& b : modes) {
     const bool on = mode == b.m;
     drawButton(b.r, b.label, fontSmall(), rgb565(on ? 0x000000 : 0xffffff), rgb565(on ? kNoteRgb : 0x4a2a7a));
@@ -455,6 +459,13 @@ void drawSubBar() {
 void drawBody(bool clear = true) {
   setCanvas(kVisible);
   if (clear) fillRect(0, kBodyClearTop, kW - 1, kBodyBottom, rgb565(0x000000));
+  if (choosingInstrument) {
+    drawButton({260,210,990,260},"ADD AN INSTRUMENT",fontLarge(),rgb565(0xffffff),rgb565(0x000000));
+    drawButton(chooseSynth,"SYNTH",fontLarge(),rgb565(0xffffff),rgb565(0x4a2a7a));
+    drawButton(chooseModular,"MODULAR",fontLarge(),rgb565(0xffffff),rgb565(0x1f737c));
+    drawButton(chooseCancel,"CANCEL",fontSmall(),rgb565(0xffffff),rgb565(0x333344));
+    return;
+  }
   if (view == View::Drums) {
     drawDrumGrid();
     return;
@@ -462,7 +473,8 @@ void drawBody(bool clear = true) {
   drawSubBar();
   switch (mode) {
     case Mode::Sound:
-      synthpanel::draw(curInst, octaveBase);
+      if (modularInstrument()) modularpanel::draw(curInst);
+      else synthpanel::draw(curInst, octaveBase);
       break;
     case Mode::Roll:
       drawRoll();
@@ -504,6 +516,7 @@ void fixView() {
 
 // Lets go of any keyboard notes that are down, and the sustain pedal.
 void releaseKeys() {
+  modularpanel::resetSelection();
   keyboard::releaseAll(kb);
   synthpanel::releaseKeys();
   if (pedalDown) {
@@ -577,7 +590,7 @@ void changeOctave(int delta) {
   drawSubBar();
   switch (mode) {
     case Mode::Sound:
-      synthpanel::setOctave(base);
+      if (!modularInstrument()) synthpanel::setOctave(base);
       break;
     case Mode::Roll:
       drawRoll();
@@ -660,6 +673,8 @@ static void endRouteHold();
 
 void enter() {
   visibleNow = true;
+  choosingInstrument = false;
+  modularpanel::resetSelection();
   for (int i = 0; i < kNumPatterns; ++i) chipShown[i] = 0;
   shownStep = -1;
   touchMode = Touch::None;
@@ -682,6 +697,17 @@ void leave() {
 void touchDown(int x, int y) {
   touchMode = Touch::None;
   bpmDir = 0;
+  if (choosingInstrument) {
+    if (inRect(chooseCancel,x,y)) {choosingInstrument=false;drawBody();return;}
+    if (inRect(chooseSynth,x,y)||inRect(chooseModular,x,y)) {
+      int before=instCount();
+      if(g.linked) teensylink::addInstrument(inRect(chooseModular,x,y));
+      choosingInstrument=false;
+      if(instCount()>before){mode=Mode::Sound;view=View::Drums;setView(View::Inst,instCount()-1);}
+      else drawBody();
+    }
+    return;
+  }
   for (int i = 0; i < kNumPatterns; ++i) {
     if (inRect(chipRect(i), x, y)) {
       selectPattern(i);
@@ -700,12 +726,9 @@ void touchDown(int x, int y) {
     }
   }
   if (n < kMaxInst && inRect(addRect(n), x, y)) {  // a new instrument, opened on its sound
-    if (g.linked) teensylink::addInstrument();
-    if (instCount() > n) {
-      mode = Mode::Sound;
-      view = View::Drums;  // (forces setView to switch)
-      setView(View::Inst, instCount() - 1);
-    }
+    releaseKeys();
+    choosingInstrument=true;
+    drawBody();
     return;
   }
   if (inRect(kBpmMinus, x, y) || inRect(kBpmPlus, x, y)) {
@@ -759,6 +782,7 @@ void touchDown(int x, int y) {
   }
   switch (mode) {
     case Mode::Sound:
+      if (modularInstrument()) {modularpanel::touchDown(curInst,x,y);break;}
       if (synthpanel::touchDown(curInst, x, y)) touchMode = Touch::Panel;
       break;
     case Mode::Roll:
@@ -842,9 +866,9 @@ void touchUp() {
 // fingers), and while it is down the Teensy is told every kKeepAliveMs so it can release a pedal
 // that stops being refreshed.
 void touchPoints(const int* xs, const int* ys, int n) {
-  const bool inInst = visibleNow && view == View::Inst;
+  const bool inInst = visibleNow && !choosingInstrument && view == View::Inst;
   const bool keysActive = inInst && mode == Mode::Keys;
-  const bool soundActive = inInst && mode == Mode::Sound;
+  const bool soundActive = inInst && mode == Mode::Sound && !modularInstrument();
   if (kb.inst != curInst) {
     keyboard::releaseAll(kb);
     kb.inst = curInst;
@@ -887,7 +911,7 @@ void update(bool visible) {
   bool padsChanged = teensylink::takePadRouteChanged();
   bool instsChanged = teensylink::takeInstrumentsChanged();
   bool synthChanged = teensylink::takeSynthChanged();
-  if (!visible) return;
+  if (!visible || choosingInstrument) return;
 
   if (instsChanged) {  // instruments were added / removed (e.g. a project opened)
     fixView();
@@ -905,7 +929,9 @@ void update(bool visible) {
         }
       }
     }
-    if (synthChanged && view == View::Inst && mode == Mode::Sound) synthpanel::refresh(curInst);
+    if (synthChanged && view == View::Inst && mode == Mode::Sound) {
+      if(modularInstrument()) modularpanel::draw(curInst); else synthpanel::refresh(curInst);
+    }
   }
   if (rhythm && drums().bpm != lastBpmShown) drawBpm();  // (the preview step also arrives here, often)
   if (padsChanged) {

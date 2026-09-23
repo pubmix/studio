@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <gfxfont.h>
+#include "ui_theme.h"
 
 // Landscape UI on a 720x1280 portrait panel. Landscape (lx, ly) maps to panel
 // (px, py) = (ly, 1279 - lx), verified on hardware with the ribbon on the right.
@@ -25,7 +26,7 @@ constexpr unsigned long kComposed = 5529600;
 
 constexpr uint32_t kTrackRgb[kNumTracks] = {0x3d7fff, 0xff9f3d, 0x7fff3d, 0xff3d7f};
 
-enum class Screen { Menu, NewProject, LoadProject, Mixer, Playlist, Pattern, FilePicker, Wifi };
+enum class Screen { Menu, NewProject, LoadProject, Mixer, Playlist, Pattern, FilePicker, Wifi, Settings, Stems };
 
 struct Shared {
   bool linked = false;
@@ -46,6 +47,7 @@ inline bool inRect(const Rect& r, int x, int y) {
   return x >= r.x1 && x <= r.x2 && y >= r.y1 && y <= r.y2;
 }
 
+uint16_t rawRgb565(uint32_t rgb, float scale = 1.0f);
 uint16_t rgb565(uint32_t rgb, float scale = 1.0f);
 void setCanvas(unsigned long layerAddr);
 void fillRect(int lx1, int ly1, int lx2, int ly2, uint16_t color);
@@ -68,6 +70,7 @@ enum Tab { kTabMixer = 0, kTabPlaylist = 1, kTabPattern = 2 };
 void drawHeader(const char* title, int activeTab, const char* buttonLabel = nullptr);
 HeaderHit headerHit(int x, int y);
 void drawLinkTag();
+void drawBevel(const Rect& r, bool inset = false);
 // Master headphone volume slider in the header, next to the link tag.
 int volumeFromX(int x);
 void drawVolume(bool force = false);

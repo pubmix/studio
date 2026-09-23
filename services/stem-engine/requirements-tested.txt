@@ -1,3 +1,4 @@
+# Extended work retains these ML pins; cloud runtime is separately tested via the cloud extra.
 # Tested macOS arm64 Python 3.11 snapshot. MLX may require the SDK flags in docs/INSTALL.md.
 absl-py==2.5.0
 anyio==4.15.1

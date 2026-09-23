@@ -57,7 +57,8 @@ namespace dubbox {
 //   d,<index>                      delete a pattern clip
 //   m,<index>,<bar>                move a pattern clip to a bar
 //   l,<index>,<lenBars>            change a pattern clip's length in bars
-//   i,<inst>,<0/1>                 add an instrument (1, appended) / delete instrument <inst> and its notes (0)
+//   i,<inst>,<0/1>[,<type>]        add (1) / delete (0); type 0=synth, 1=modular
+//   @,<inst>,<type>,<10 params>,<9 sources> modular patch transaction; same format in state reports
 //   n,<pattern>,<inst>,<midi>,<start>,<len>   add a note to an instrument, or change the length of the one at that pitch and step
 //   x,<pattern>,<inst>,<midi>,<start>   remove the note starting there
 //   c,<pattern>,<inst>             clear an instrument's notes in a pattern
@@ -144,11 +145,13 @@ class EspLink {
   uint32_t lastRefreshMs_ = 0;
   uint32_t lastClipSig_[kNumTracks] = {0, 0, 0, 0};
   int lastBeatMask_ = -1;
+  int lastPan_[kNumTracks] = {2000,2000,2000,2000};
   uint32_t lastFxSig_[kNumTracks] = {0, 0, 0, 0};
   uint32_t lastPatSig_[DrumMachine::kNumPatterns] = {0};
   uint32_t lastPatClipSig_ = 0;
   uint32_t lastPadSig_ = 0;
   uint32_t lastInstSig_ = 0;
+  uint32_t lastModSig_[DrumMachine::kMaxInstruments] = {0};
   uint32_t lastSynthSig_[DrumMachine::kMaxInstruments] = {0};
   uint32_t lastNoteSig_[DrumMachine::kNumPatterns][DrumMachine::kMaxInstruments] = {{0}};
   uint32_t lastRhythmSig_ = 0;

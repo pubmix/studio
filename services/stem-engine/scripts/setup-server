@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$ROOT"
+if [ ! -x .venv/bin/python ]; then uv venv --python 3.11 .venv; fi
+uv pip install --python .venv/bin/python -e '.[demucs,cloud,test]'
+printf '%s\n' 'Ready. Start with scripts/studio-server. First split may download model weights.'

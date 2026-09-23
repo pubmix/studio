@@ -68,12 +68,17 @@ class SeparatorBackend:
     a staged residual. Model output labels are explicitly requested, never guessed
     from order. Two-source output is accepted only by the vocal extraction stage.
     """
-    def __init__(self, runtime):
+    def __init__(self, runtime, model_dir=None):
         self.runtime = runtime
+        self.model_dir = model_dir
 
     def identity(self, settings):
         package = "mlx-audio-separator" if self.runtime == "mlx" else "audio-separator"
-        return {"adapter": "separator-v1", "package": package, "version": version(package),
+        from .engine import digest
+        directory = Path(os.environ.get("STUDIO_MODEL_DIR", self.model_dir or ".models"))
+        artifacts = sorted({p for model in (settings.resolved_model(), settings.vocal_model)
+                            for p in directory.glob(Path(model).stem + ".*") if p.is_file()})
+        return {"adapter": "separator-v2", "artifacts": [{"file": p.name, "sha256": digest(p)} for p in artifacts], "package": package, "version": version(package),
                 "runtime": {p: version(p) for p in (("mlx", "mlx-audio-io") if self.runtime == "mlx" else ("torch", "onnxruntime"))}}
 
     def separate(self, audio, rate, model, settings, scratch, progress):
@@ -85,7 +90,7 @@ class SeparatorBackend:
             temp = Path(temp)
             source = temp / "input.wav"
             sf.write(source, audio, rate, subtype="FLOAT")
-            model_dir = Path(os.environ.get("STUDIO_MODEL_DIR", scratch.parent / ".models")).resolve()
+            model_dir = Path(os.environ.get("STUDIO_MODEL_DIR", self.model_dir or scratch.parent / ".models")).resolve()
             model_dir.mkdir(parents=True, exist_ok=True)
             random.seed(settings.seed)
             np.random.seed(settings.seed)
@@ -111,8 +116,9 @@ class SeparatorBackend:
                 if settings.device == "cpu":
                     separator.onnx_execution_provider = ["CPUExecutionProvider"]
             separator.load_model(model_filename=model if "." in model else model + ".yaml")
-            labels = ["Vocals", "Instrumental", "Other", "Bass", "Drums", "Guitar", "Piano", "Strings"]
-            mapping = {label: label.lower() for label in labels}
+            from .sources import FAMILIES, ALIASES
+            labels = list(FAMILIES) + list(ALIASES) + ["Instrumental"]
+            mapping = {name: ALIASES.get(name.lower(), name.lower()) for name in labels}
             from .engine import digest
             artifacts = [p for p in model_dir.glob(Path(model).stem + ".*") if p.is_file()]
             self.last_provenance = {"model": model, "artifacts": [{"file": p.name, "sha256": digest(p)} for p in sorted(artifacts)]}
@@ -129,6 +135,8 @@ class SeparatorBackend:
                 value, out_rate = sf.read(path, dtype="float32", always_2d=True)
                 if audio.shape[1] == 1 and value.shape[1] == 2:
                     value = value.mean(axis=1, keepdims=True)
+                if label in result:
+                    raise EngineError(f"Duplicate separator output: {label}")
                 result[label] = align(resample(value, out_rate, rate), len(audio), audio.shape[1])
             return result
 

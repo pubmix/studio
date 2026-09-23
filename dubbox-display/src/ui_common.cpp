@@ -5,6 +5,7 @@
 #include <Fonts/FreeSansBold18pt7b.h>
 #include "LCD.h"
 #include "teensy_link.h"
+#include "screen_mirror.h"
 
 namespace ui {
 
@@ -19,7 +20,6 @@ int s_lastClockTenths = -1;
 constexpr uint32_t kHeaderBg = 0x18202e;
 constexpr Rect kTabRects[3] = {{722, 6, 836, 54}, {844, 6, 994, 54}, {1002, 6, 1152, 54}};
 constexpr const char* kTabLabels[3] = {"MIXER", "PLAYLIST", "PATTERN"};
-constexpr uint32_t kTabRgb[3] = {0x3d7fff, 0xff9f3d, 0xb45cff};
 constexpr Rect kMenuBtn = {1160, 6, 1268, 54};
 constexpr int kTitleX = 215;
 constexpr int kTitleMaxW = 200;
@@ -38,6 +38,7 @@ constexpr Rect kPadModeBtn = {518, kTransportTop + 6, 678, kTransportTop + 64};
 constexpr Rect kSongPlayBtn = {684, kTransportTop + 6, 944, kTransportTop + 64};
 constexpr Rect kSplitRewindBtn = {950, kTransportTop + 6, 1240, kTransportTop + 64};
 bool s_splitPlay = false;
+bool s_drawingGlyph = false;
 constexpr int kClockX = 40;
 constexpr int kClockY = 61;
 // Scratch layer for flicker-free drawing: rows above the lanes are unused in kDim.
@@ -47,6 +48,10 @@ int s_lastKnobX = -1;
 }  // namespace
 
 uint16_t rgb565(uint32_t rgb, float scale) {
+  return rawRgb565(theme::resolve(rgb), scale);
+}
+
+uint16_t rawRgb565(uint32_t rgb, float scale) {
   uint32_t r = (uint32_t)(((rgb >> 16) & 0xFF) * scale);
   uint32_t gr = (uint32_t)(((rgb >> 8) & 0xFF) * scale);
   uint32_t b = (uint32_t)((rgb & 0xFF) * scale);
@@ -54,6 +59,7 @@ uint16_t rgb565(uint32_t rgb, float scale) {
 }
 
 void setCanvas(unsigned long addr) {
+  mirror::canvas(addr);
   ER5517.Canvas_Image_Start_address(addr);
   ER5517.Canvas_image_width(kPanelW);
   ER5517.Active_Window_XY(0, 0);
@@ -72,6 +78,7 @@ void fillRect(int lx1, int ly1, int lx2, int ly2, uint16_t color) {
   int px, py, pw, ph;
   toPanel(lx1, ly1, lx2, ly2, px, py, pw, ph);
   ER5517.DrawSquare_Fill(px, py, px + pw - 1, py + ph - 1, color);
+  if (!s_drawingGlyph) mirror::rect(lx1, ly1, lx2, ly2, color);
 }
 
 void bteCopy(unsigned long src, unsigned long dst, int lx, int ly, int lw, int lh) {
@@ -95,6 +102,7 @@ void bteCopy(unsigned long src, unsigned long dst, int lx, int ly, int lw, int l
   ER5517.BTE_Window_Size(pw, ph);
   ER5517.BTE_Enable();
   ER5517.Check_BTE_Busy();
+  mirror::copy(src, dst, lx, ly, lw, lh);
 }
 
 const GFXfont* fontSmall() { return &FreeSansBold12pt7b; }
@@ -115,6 +123,7 @@ static int fontAscent(const GFXfont* f) {
 }
 
 static void drawGlyph(const GFXfont* f, char c, int x, int baseline, uint16_t fg) {
+  s_drawingGlyph = true;
   const GFXglyph& gl = f->glyph[c - f->first];
   const uint8_t* bitmap = f->bitmap + gl.bitmapOffset;
   uint8_t bits = 0;
@@ -138,6 +147,8 @@ static void drawGlyph(const GFXfont* f, char c, int x, int baseline, uint16_t fg
       }
     }
   }
+  s_drawingGlyph = false;
+  mirror::glyph(f == fontLarge() ? 1 : 0, static_cast<unsigned char>(c), x, baseline, fg);
 }
 
 void drawText(int x, int yTop, const char* s, const GFXfont* f, uint16_t fg, uint16_t bg,
@@ -155,8 +166,24 @@ void drawText(int x, int yTop, const char* s, const GFXfont* f, uint16_t fg, uin
   }
 }
 
+void drawBevel(const Rect& r, bool inset) {
+  const auto& p = theme::palette();
+  const uint16_t hi = rawRgb565(inset ? p.shadow : p.edge);
+  const uint16_t lo = rawRgb565(inset ? p.edge : p.shadow);
+  for (int i = 0; i < p.bevel; ++i) {
+    fillRect(r.x1+i,r.y1+i,r.x2-i,r.y1+i,hi);
+    fillRect(r.x1+i,r.y1+i,r.x1+i,r.y2-i,hi);
+    fillRect(r.x1+i,r.y2-i,r.x2-i,r.y2-i,lo);
+    fillRect(r.x2-i,r.y1+i,r.x2-i,r.y2-i,lo);
+  }
+}
+
 void drawButton(const Rect& r, const char* label, const GFXfont* f, uint16_t fg, uint16_t fill) {
   fillRect(r.x1, r.y1, r.x2, r.y2, fill);
+  drawBevel(r);
+  // Derive readable button lettering from the actual RGB565 fill in every skin.
+  int luminance = ((fill >> 11) * 255 / 31 * 299 + ((fill >> 5) & 63) * 255 / 63 * 587 + (fill & 31) * 255 / 31 * 114) / 1000;
+  fg = rawRgb565(luminance > 145 ? 0x17191b : 0xf8f3e9);
   int w = textWidth(f, label);
   int h = fontAscent(f);
   int tx = (r.x1 + r.x2) / 2 - w / 2;
@@ -177,23 +204,10 @@ void drawLinkTag() {
            rgb565(g.linked ? 0x35d07f : 0x999999), rgb565(kHeaderBg), 106);
 }
 
-// A filled box with a border, like the PLAY button: bright enough to stand out from the dark header.
-static void drawBox(const Rect& r, const char* label, uint32_t fillRgb, float fillScale, uint32_t borderRgb,
-                    uint32_t textRgb) {
-  drawButton(r, label, fontSmall(), rgb565(textRgb), rgb565(fillRgb, fillScale));
-  const uint16_t b = rgb565(borderRgb);
-  fillRect(r.x1, r.y1, r.x2, r.y1 + 3, b);
-  fillRect(r.x1, r.y2 - 3, r.x2, r.y2, b);
-  fillRect(r.x1, r.y1, r.x1 + 3, r.y2, b);
-  fillRect(r.x2 - 3, r.y1, r.x2, r.y2, b);
-}
-
 static void drawTab(int i, bool active) {
-  if (active) {  // full colour, white frame, dark text
-    drawBox(kTabRects[i], kTabLabels[i], kTabRgb[i], 1.0f, 0xffffff, 0x000000);
-  } else {  // mid-bright fill with a border in the tab's own colour
-    drawBox(kTabRects[i], kTabLabels[i], kTabRgb[i], 0.7f, kTabRgb[i], 0xffffff);
-  }
+  const auto& p = theme::palette();
+  drawButton(kTabRects[i], kTabLabels[i], fontSmall(), rawRgb565(p.text),
+             rawRgb565(active ? p.accent : p.raised));
 }
 
 void drawHeader(const char* title, int activeTab, const char* buttonLabel) {
@@ -203,7 +217,7 @@ void drawHeader(const char* title, int activeTab, const char* buttonLabel) {
   setCanvas(kVisible);
   fillRect(0, 0, kW - 1, kHeaderH - 1, rgb565(kHeaderBg));
   fillRect(0, kHeaderH - 4, kW - 1, kHeaderH - 1, rgb565(0x1f9d55));
-  drawText(20, 10, "DUB-BOX", fontLarge(), rgb565(0xffffff), rgb565(kHeaderBg));
+  drawText(20, 10, "STUDIO", fontLarge(), rgb565(0xffffff), rgb565(kHeaderBg));
   char clipped[32];
   strncpy(clipped, title != nullptr ? title : "", sizeof(clipped) - 1);
   clipped[sizeof(clipped) - 1] = '\0';
@@ -219,7 +233,7 @@ void drawHeader(const char* title, int activeTab, const char* buttonLabel) {
     for (int i = 0; i < 3; ++i) drawTab(i, i == activeTab);
   }
   if (s_showButton) {
-    drawBox(kMenuBtn, s_showTabs ? "MENU" : buttonLabel, 0xd03a3a, 1.0f, 0xff8a80, 0xffffff);
+    drawButton(kMenuBtn, s_showTabs ? "MENU" : buttonLabel, fontSmall(), rgb565(0xffffff), rgb565(0x333333));
   }
 }
 
@@ -275,9 +289,9 @@ void drawClock(bool force) {
   if (!force && tenths == s_lastClockTenths) return;
   s_lastClockTenths = tenths;
   char buf[32];
-  snprintf(buf, sizeof(buf), "%.1f / %.1f s", g.posMs / 1000.0f, g.songMs / 1000.0f);
+  snprintf(buf, sizeof(buf), "%02lu:%02lu.%lu", (unsigned long)(g.posMs / 60000), (unsigned long)((g.posMs / 1000) % 60), (unsigned long)((g.posMs / 100) % 10));
   setCanvas(kScratch);
-  drawText(kClockX, kClockY, buf, fontLarge(), rgb565(0xffffff), rgb565(kTransportBg), 290);
+  drawText(kClockX, kClockY, buf, fontLarge(), rawRgb565(theme::palette().accent), rgb565(kTransportBg), 290);
   bteCopy(kScratch, kVisible, kClockX, kClockY, 291, 44);
 }
 

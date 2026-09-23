@@ -1,6 +1,6 @@
 """Run a local corpus manifest; reference-free results never become quality scores."""
 import argparse
-from dataclasses import asdict
+from dataclasses import asdict, replace
 import json
 from pathlib import Path
 import time
@@ -24,7 +24,11 @@ def metrics(reference, estimate):
     target = ref * (np.sum(ref*est) / power)
     si = 10*np.log10((np.sum(target**2)+1e-12)/(np.sum((est-target)**2)+1e-12))
     snr = 10*np.log10((np.sum(reference**2)+1e-12)/(np.sum((estimate-reference)**2)+1e-12))
-    return {'si_sdr_db': float(si), 'snr_db': float(snr)}
+    result = {'si_sdr_db': float(si), 'snr_db': float(snr),
+              'transient_mae': float(np.mean(np.abs(np.diff(estimate, axis=0)-np.diff(reference, axis=0)))) if len(reference) > 1 else None}
+    if reference.shape[1] == 2:
+        result['stereo_side_mae'] = float(np.mean(np.abs((estimate[:,0]-estimate[:,1])-(reference[:,0]-reference[:,1]))))
+    return result
 
 
 def benchmark(manifest_path, output):
@@ -36,7 +40,7 @@ def benchmark(manifest_path, output):
         source=(manifest_path.parent/item['mixture']).resolve()
         mixture, rate=read(source)
         for config in manifest['configurations']:
-            settings=Settings(**config['settings'])
+            settings=replace(Settings(**config['settings']), fallback=False)
             row={'track':item['id'],'configuration':config['name'],'settings':asdict(settings)}
             began=time.monotonic()
             try:
@@ -53,10 +57,21 @@ def benchmark(manifest_path, output):
                         row['metrics']={}
                         for stem in STEMS:
                             ref,sr=read((manifest_path.parent/item['references'][stem]).resolve())
-                            est,er=read(result/f'{stem}.wav')
+                            est,er=read((result/'four' if metadata['schema']=='studio.stems.v2' else result)/f'{stem}.wav')
                             if sr!=er: raise ValueError('Reference sample rate differs; no implicit metric resampling')
                             row['metrics'][stem]=metrics(ref,est)
-                    else:
+                    if 'source_references' in item:
+                        row['source_metrics'] = {}
+                        entries = {e['name'].lower(): e for e in metadata['stems']}
+                        for name, reference in item['source_references'].items():
+                            if name not in entries:
+                                row['source_metrics'][name] = {'status': 'not_exposed'}
+                                continue
+                            ref, sr = read((manifest_path.parent/reference).resolve())
+                            est, er = read(result/entries[name]['file'])
+                            if sr != er: raise ValueError('Reference sample rate differs')
+                            row['source_metrics'][name] = metrics(ref, est)
+                    if 'references' not in item and 'source_references' not in item:
                         row['quality_scores']=None
                         row['quality_note']='No isolated references. Runtime/correctness only.'
             except Exception as exc:

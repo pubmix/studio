@@ -13,3 +13,13 @@ The current three aspects are:
 - [Stem Engine](services/stem-engine/README.md)
 
 Follow [component contribution guidance](docs/CONTRIBUTING_COMPONENTS.md) for layout and integration. Preserve the universal stem order: VOCALS, MELODY, BASS, RHYTHM.
+
+## Firmware update preference
+
+The user explicitly requested on 2026-09-22 that new firmware updates be flashed
+after each update. After successful build and relevant checks, upload the changed
+board's firmware to its verified connected USB identity and verify startup. This
+is standing authorization; do not ask again for routine firmware uploads. Do not
+flash an unrelated board. If disconnected or validation fails, report the blocker.
+Stop the hardware recorder before taking a serial port and restart it afterwards;
+follow `hardware-monitor/README.md`. Preserve user projects and device settings.

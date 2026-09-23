@@ -12,7 +12,7 @@ Keep all STUDIO work in this repository. Each component owns its source, depende
 
 The local engine prepares exactly four synchronized WAVs. Firmware consumes those files through a versioned adapter; separation does not run inside the audio processing path. See `firmware/teensy/INTEGRATION.md`.
 
-The local engine is imported under `services/stem-engine`. It produces FLOAT32 master WAVs with its own metadata; the explicit PCM16 transfer exporter remains to be implemented. See `services/stem-engine/docs/REPOSITORY_INTEGRATION.md`.
+The local engine lives under `services/stem-engine`. It preserves FLOAT32 masters and now provides an explicit PCM16 transfer exporter plus a client for the active Dub-Box ESP32 WiFi upload interface. The active `dubbox-firmware` / `dubbox-display` application uses its existing SD file picker for track assignment. The older `firmware/teensy` importer remains compatible with exported manifests. See `services/stem-engine/docs/REPOSITORY_INTEGRATION.md`.
 
 ## Validation
 

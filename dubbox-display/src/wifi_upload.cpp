@@ -6,9 +6,14 @@
 #include <WebServer.h>
 #include <WiFi.h>
 #include <string.h>
+#include <new>
 
 #include "teensy_link.h"
 #include "upload_page.h"
+#include "transfer_blocks.h"
+#include "stem_client.h"
+#include <ArduinoJson.h>
+#include <rom/miniz.h>
 
 namespace wifiup {
 namespace {
@@ -70,6 +75,12 @@ bool jobRunning() { return g_job.stage == kRequested || g_job.stage == kSending;
 uint32_t g_dbgTotal = 0;  // test hook: bytes of generated WAV to feed, and how many were fed
 uint32_t g_dbgFed = 0;
 uint32_t g_dbgStartMs = 0;
+TransferBlocks* g_blocks = nullptr;
+tinfl_decompressor* g_inflater = nullptr;
+bool g_compressed = false;
+bool g_started = false;
+const char* g_requestError = nullptr;
+uint32_t g_wireExpected = 0, g_wireReceived = 0;
 bool g_refused = false;  // the upload that just arrived was turned away because another is running
 
 // ---- Web server (runs in its own task) ----
@@ -80,10 +91,11 @@ void sendJson(int code, const char* body) {
 }
 
 void onStatus() {
-  char buf[96];
+  char buf[256];
   const bool linked = teensylink::connected();
-  snprintf(buf, sizeof(buf), "{\"linked\":%s,\"busy\":%s,\"playing\":%s}", linked ? "true" : "false",
-           jobRunning() ? "true" : "false", teensylink::state().playing ? "true" : "false");
+  snprintf(buf, sizeof(buf), "{\"linked\":%s,\"busy\":%s,\"playing\":%s,\"transfer_modes\":[\"wav\"%s],\"playback_channels\":4}", linked ? "true" : "false",
+           jobRunning() ? "true" : "false", teensylink::state().playing ? "true" : "false",
+           g_blocks && g_inflater ? ",\"deflate-blocks-v1\"" : "");
   sendJson(200, buf);
 }
 
@@ -103,67 +115,130 @@ void beginJob(const char* name, uint32_t size) {
   g_job.stage = kRequested;
 }
 
+bool parseSize(const String& value, uint32_t& result) {
+  if (!value.length() || value.length() > 10) return false;
+  uint64_t n = 0;
+  for (size_t i = 0; i < value.length(); ++i) {
+    if (value[i] < '0' || value[i] > '9') return false;
+    n = n * 10 + value[i] - '0';
+  }
+  if (n < 1 || n > 0x7fff0000u) return false;
+  result = static_cast<uint32_t>(n); return true;
+}
+
+bool pushBytes(const uint8_t* bytes, size_t size) {
+  if (size > g_job.size - g_job.received) return false;
+  size_t off = 0;
+  uint32_t waitStart = millis();
+  while (off < size && g_job.stage == kSending) {
+    const size_t room = kRingSize - (g_head - g_tail);
+    if (!room) {
+      if (millis() - waitStart > 15000) return false;
+      vTaskDelay(2 / portTICK_PERIOD_MS); continue;
+    }
+    size_t n = size - off;
+    if (n > room) n = room;
+    const size_t pos = g_head % kRingSize;
+    size_t first = kRingSize - pos;
+    if (first > n) first = n;
+    memcpy(g_ring + pos, bytes + off, first);
+    if (n > first) memcpy(g_ring, bytes + off + first, n - first);
+    g_head += static_cast<uint32_t>(n);
+    g_job.received += static_cast<uint32_t>(n);
+    off += n; waitStart = millis();
+  }
+  return off == size;
+}
+
+bool inflateBlock(const uint8_t* source, size_t size, uint8_t* target, size_t expected) {
+  tinfl_init(g_inflater);
+  size_t input = size, output = expected;
+  const auto result = tinfl_decompress(g_inflater, source, &input, target, target, &output,
+      TINFL_FLAG_PARSE_ZLIB_HEADER | TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF);
+  return result == TINFL_STATUS_DONE && input == size && output == expected;
+}
+
+void rejectUpload(const char* why) {
+  g_requestError = why;
+  if (g_started && jobRunning()) g_job.cancel = true;
+}
+
 void onUploadData() {
   HTTPUpload& up = g_server.upload();
   if (up.status == UPLOAD_FILE_START) {
-    if (jobRunning() || g_ring == nullptr) {
-      g_refused = true;  // answered in onUploadDone
-      return;
+    // Exactly one part per request; never allow a refused request to feed another job.
+    if (g_started || g_refused || g_requestError) { rejectUpload("multipart"); return; }
+    if (jobRunning() || !g_ring) { g_refused = true; return; }
+    uint32_t size;
+    const String encoding = g_server.arg("encoding");
+    g_compressed = encoding == "deflate-blocks-v1";
+    if (encoding.length() && encoding != "wav" && !g_compressed) { rejectUpload("encoding"); return; }
+    if (!parseSize(g_server.arg("size"), size) || size < 64) { rejectUpload("size"); return; }
+    g_wireExpected = size;
+    if (g_compressed && (!g_blocks || !g_inflater || !parseSize(g_server.arg("wire_size"), g_wireExpected))) {
+      rejectUpload("compression"); return;
     }
-    g_refused = false;
-    beginJob(g_server.arg("name").c_str(), static_cast<uint32_t>(g_server.arg("size").toInt()));
-    // The main loop asks the Teensy; wait for its answer before taking data.
+    g_wireReceived = 0;
+    if (g_compressed) g_blocks->reset(size);
+    beginJob(g_server.arg("name").c_str(), size);
+    g_started = true;
     for (int i = 0; i < 800 && g_job.stage == kRequested; ++i) vTaskDelay(5 / portTICK_PERIOD_MS);
   } else if (up.status == UPLOAD_FILE_WRITE) {
-    size_t off = 0;
-    uint32_t waitStart = millis();
-    while (off < up.currentSize && g_job.stage == kSending) {
-      const uint32_t used = g_head - g_tail;
-      const size_t room = kRingSize - used;
-      if (room == 0) {
-        if (millis() - waitStart > 15000) {
-          g_job.cancel = true;
-          break;
-        }
-        vTaskDelay(2 / portTICK_PERIOD_MS);
-        continue;
-      }
-      size_t n = up.currentSize - off;
-      if (n > room) n = room;
-      const size_t pos = g_head % kRingSize;
-      size_t first = kRingSize - pos;
-      if (first > n) first = n;
-      memcpy(g_ring + pos, up.buf + off, first);
-      if (n > first) memcpy(g_ring, up.buf + off + first, n - first);
-      g_head = g_head + static_cast<uint32_t>(n);
-      g_job.received = g_job.received + static_cast<uint32_t>(n);
-      off += n;
-      waitStart = millis();
-    }
+    if (!g_started || g_refused || g_requestError) return;
+    if (up.currentSize > g_wireExpected - g_wireReceived) { rejectUpload("size"); return; }
+    g_wireReceived += up.currentSize;
+    const bool ok = g_compressed ? g_blocks->feed(up.buf, up.currentSize, inflateBlock, pushBytes)
+                                : pushBytes(up.buf, up.currentSize);
+    if (!ok) rejectUpload(g_compressed ? "compression" : "size");
   } else if (up.status == UPLOAD_FILE_END) {
-    g_job.inputDone = true;
+    if (!g_started || g_refused || g_requestError) return;
+    if (g_wireReceived != g_wireExpected || g_job.received != g_job.size ||
+        (g_compressed && !g_blocks->complete())) { rejectUpload("size"); return; }
+    // Final UART chunk is held until the HTTP body is validated in onUploadDone.
   } else if (up.status == UPLOAD_FILE_ABORTED) {
-    g_job.cancel = true;
+    rejectUpload("cancelled");
+    g_started = g_refused = false; g_requestError = nullptr;
   }
 }
 
 void onUploadDone() {
-  if (g_refused || g_ring == nullptr) {
-    g_refused = false;
-    sendJson(200, "{\"ok\":false,\"error\":\"busy\"}");
-    return;
-  }
-  // Wait for the Teensy to finish writing what is still in the pipeline.
+  if (!g_started && !g_refused && !g_requestError) g_requestError = "multipart";
+  if (g_started && !g_requestError &&
+      (g_wireReceived != g_wireExpected || g_job.received != g_job.size ||
+       (g_compressed && !g_blocks->complete()))) rejectUpload("size");
+  if (g_started && !g_requestError) g_job.inputDone = true;
   const uint32_t t0 = millis();
-  while (jobRunning() && millis() - t0 < 30000) vTaskDelay(10 / portTICK_PERIOD_MS);
+  while (g_started && jobRunning() && millis() - t0 < 30000) vTaskDelay(10 / portTICK_PERIOD_MS);
   char buf[112];
-  if (g_job.stage == kDone) {
+  if (!g_refused && !g_requestError && g_started && g_job.stage == kDone) {
     snprintf(buf, sizeof(buf), "{\"ok\":true,\"name\":\"%s\"}", g_job.name);
-    sendJson(200, buf);
   } else {
-    snprintf(buf, sizeof(buf), "{\"ok\":false,\"error\":\"%s\"}", g_job.stage == kFailed ? g_job.error : "timeout");
-    sendJson(200, buf);
+    snprintf(buf, sizeof(buf), "{\"ok\":false,\"error\":\"%s\"}",
+        g_refused ? "busy" : g_requestError ? g_requestError : g_job.stage == kFailed ? g_job.error : "timeout");
+    if (g_started && jobRunning()) g_job.cancel = true;
   }
+  sendJson(200, buf);
+  g_started = g_refused = false; g_requestError = nullptr;
+}
+
+void configureStems() {
+  // JSON forces a browser preflight across origins; no cross-origin endpoint is enabled.
+  const String origin = g_server.header("Origin");
+  const String ownIp = String("http://") + WiFi.localIP().toString();
+  if (origin.length() && origin != "http://dubbox.local" && origin != ownIp) {
+    sendJson(403, "{\"ok\":false,\"error\":\"origin\"}"); return;
+  }
+  if (jobRunning() || stemclient::busy()) { sendJson(409, "{\"ok\":false,\"error\":\"busy\"}"); return; }
+  if (!g_server.header("Content-Type").startsWith("application/json") || g_server.arg("plain").length() > 512) {
+    sendJson(400, "{\"ok\":false,\"error\":\"Expected bounded JSON\"}"); return;
+  }
+  StaticJsonDocument<768> config;
+  if (deserializeJson(config, g_server.arg("plain")) || !config["origin"].is<const char*>() || !config["key"].is<const char*>() ||
+      !stemclient::configure(config["origin"], config["key"])) {
+    sendJson(400, "{\"ok\":false,\"error\":\"Use the computer LAN address (http://IP:8766) and pairing key\"}"); return;
+  }
+  stemclient::request(stemclient::Action::Library);
+  sendJson(200, "{\"ok\":true}");
 }
 
 void onRoot() { g_server.send_P(200, "text/html", kUploadPage); }
@@ -178,6 +253,16 @@ void serverTask(void*) {
 void startServer() {
   if (g_serverStarted) return;
   if (g_ring == nullptr) g_ring = static_cast<uint8_t*>(malloc(kRingSize));
+  g_blocks = new (std::nothrow) TransferBlocks;
+  g_inflater = new (std::nothrow) tinfl_decompressor;
+  const char* collected[] = {"Origin", "Content-Type"};
+  g_server.collectHeaders(collected, 2);
+  g_server.on("/stem/configure", HTTP_POST, configureStems);
+  g_server.on("/stem/status", HTTP_GET, []() {
+    char reply[96];snprintf(reply,sizeof(reply),"{\"configured\":%s,\"busy\":%s,\"connected\":%s}",
+        stemclient::configured()?"true":"false",stemclient::busy()?"true":"false",stemclient::connected()?"true":"false");
+    sendJson(200,reply);
+  });
   g_server.on("/", HTTP_GET, onRoot);
   g_server.on("/status", HTTP_GET, onStatus);
   g_server.on("/upload", HTTP_POST, onUploadDone, onUploadData);
@@ -289,9 +374,10 @@ void pumpJob(uint32_t now) {
   while (g_job.sentChunks - rep.acked < static_cast<uint32_t>(kWindow) && g_job.sent < g_job.size) {
     uint32_t want = g_job.size - g_job.sent;
     if (want > static_cast<uint32_t>(teensylink::kUploadChunk)) want = teensylink::kUploadChunk;
+    if (g_job.sent + want == g_job.size && !g_job.inputDone) break;
     const uint32_t avail = g_head - g_tail;
     if (avail < want) {
-      if (g_job.inputDone) failJob("size");  // the browser sent less than it promised
+      if (g_job.inputDone) { teensylink::uploadCancel(); failJob("size"); }  // the browser sent less than it promised
       break;
     }
     const uint32_t pos = g_tail % kRingSize;
@@ -466,6 +552,8 @@ bool scanOpen(int i) { return g_scanOpen[i]; }
 
 void debugUpload(int seconds) {
   if (g_ring == nullptr) g_ring = static_cast<uint8_t*>(malloc(kRingSize));
+  g_blocks = new (std::nothrow) TransferBlocks;
+  g_inflater = new (std::nothrow) tinfl_decompressor;
   if (jobRunning() || g_ring == nullptr || seconds < 1 || seconds > 600) {
     Serial.println("WIFI: test upload refused (busy, or out of memory)");
     return;
