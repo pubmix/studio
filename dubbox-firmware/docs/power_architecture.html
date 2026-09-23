@@ -1,0 +1,489 @@
+<title>Dub-Box Power Architecture</title>
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --surface-2: #eaeef4;
+    --border: #d6dde6;
+    --text: #141a24;
+    --text-dim: #5b6472;
+    --mono-text: #2c3542;
+    --accent: #c47f00; /* amber, dimmed for light bg */
+    --teensy: #2f66d6;
+    --esp32: #c96f1e;
+    --speaker: #2f8f1e;
+    --mic: #c22a63;
+    --danger-bg: #fdeceb;
+    --danger-border: #f0b8b3;
+    --danger-text: #8a2f27;
+    --shadow: 0 1px 2px rgba(20, 26, 36, 0.06), 0 8px 24px rgba(20, 26, 36, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0b0e14;
+      --surface: #141a24;
+      --surface-2: #1b2330;
+      --border: #2a3444;
+      --text: #e8ecf1;
+      --text-dim: #92a0b3;
+      --mono-text: #cdd6e2;
+      --accent: #ffaa00;
+      --teensy: #5b8fff;
+      --esp32: #ff9f3d;
+      --speaker: #6be04a;
+      --mic: #ff5c93;
+      --danger-bg: #2a1614;
+      --danger-border: #5c2b26;
+      --danger-text: #ff9f92;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0b0e14;
+    --surface: #141a24;
+    --surface-2: #1b2330;
+    --border: #2a3444;
+    --text: #e8ecf1;
+    --text-dim: #92a0b3;
+    --mono-text: #cdd6e2;
+    --accent: #ffaa00;
+    --teensy: #5b8fff;
+    --esp32: #ff9f3d;
+    --speaker: #6be04a;
+    --mic: #ff5c93;
+    --danger-bg: #2a1614;
+    --danger-border: #5c2b26;
+    --danger-text: #ff9f92;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
+    padding: 0 20px;
+    padding-block: 40px;
+  }
+  main {
+    max-width: 880px;
+    margin: 0 auto;
+  }
+  .mono, code, td.num, .partno {
+    font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  }
+
+  header.page {
+    margin-bottom: 36px;
+  }
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  h1 {
+    font-size: clamp(28px, 5vw, 38px);
+    line-height: 1.15;
+    margin: 8px 0 10px;
+    text-wrap: balance;
+    letter-spacing: -0.01em;
+  }
+  .lede {
+    color: var(--text-dim);
+    font-size: 16px;
+    line-height: 1.55;
+    max-width: 62ch;
+  }
+
+  section { margin-top: 48px; }
+  h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    font-weight: 600;
+    margin: 0 0 18px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 {
+    font-size: 17px;
+    margin: 0 0 4px;
+    letter-spacing: -0.005em;
+  }
+  p { line-height: 1.6; }
+
+  /* ---------- block diagram ---------- */
+  .diagram {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .shared-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .node {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13.5px;
+    font-weight: 600;
+    box-shadow: var(--shadow);
+    white-space: nowrap;
+  }
+  .arrow-right {
+    color: var(--text-dim);
+    font-size: 18px;
+    flex: 0 0 auto;
+  }
+  .lanes {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-top: 6px;
+  }
+  @media (max-width: 700px) {
+    .lanes { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 460px) {
+    .lanes { grid-template-columns: 1fr; }
+  }
+  .lane {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+  .lane-label {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 600;
+    text-align: center;
+    padding-bottom: 8px;
+    color: var(--lane-color);
+  }
+  .lane .connector {
+    width: 2px;
+    height: 16px;
+    background: var(--lane-color);
+    margin: 0 auto;
+    opacity: 0.6;
+  }
+  .lane .node {
+    text-align: center;
+    white-space: normal;
+    border-color: var(--lane-color);
+    border-width: 1.5px;
+    width: 100%;
+    font-size: 13px;
+  }
+  .lane .node.endpoint {
+    background: var(--lane-color);
+    color: #0b0e14;
+    font-weight: 700;
+  }
+  .lane[data-lane="teensy"] { --lane-color: var(--teensy); }
+  .lane[data-lane="esp32"] { --lane-color: var(--esp32); }
+  .lane[data-lane="speaker"] { --lane-color: var(--speaker); }
+  .lane[data-lane="mic"] { --lane-color: var(--mic); }
+
+  /* ---------- subsystem cards ---------- */
+  .cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 620px) {
+    .cards { grid-template-columns: 1fr; }
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--card-color);
+    border-radius: 10px;
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+  }
+  .card[data-lane="teensy"] { --card-color: var(--teensy); }
+  .card[data-lane="esp32"] { --card-color: var(--esp32); }
+  .card[data-lane="speaker"] { --card-color: var(--speaker); }
+  .card[data-lane="mic"] { --card-color: var(--mic); }
+  .card .tag {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--card-color);
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .card .part {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 13.5px;
+    color: var(--mono-text);
+    background: var(--surface-2);
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin: 10px 0;
+  }
+  .card p { font-size: 14px; color: var(--text-dim); margin: 0; }
+
+  /* ---------- table ---------- */
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    font-weight: 600;
+  }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.total td { font-weight: 700; border-top: 2px solid var(--border); border-bottom: none; }
+  tr.total td.num { color: var(--accent); }
+
+  .swatch {
+    display: inline-block;
+    width: 9px; height: 9px;
+    border-radius: 2px;
+    margin-right: 7px;
+    vertical-align: middle;
+  }
+
+  /* ---------- risk notes ---------- */
+  .risks { display: flex; flex-direction: column; gap: 10px; }
+  .risk {
+    display: flex;
+    gap: 12px;
+    background: var(--danger-bg);
+    border: 1px solid var(--danger-border);
+    border-radius: 8px;
+    padding: 12px 16px;
+  }
+  .risk .num {
+    font-family: "IBM Plex Mono", monospace;
+    font-weight: 700;
+    color: var(--danger-text);
+    flex: 0 0 auto;
+  }
+  .risk p { margin: 0; font-size: 14px; line-height: 1.55; color: var(--text); }
+  .risk strong { color: var(--danger-text); }
+
+  .note {
+    font-size: 13.5px;
+    color: var(--text-dim);
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 12px 16px;
+    line-height: 1.55;
+  }
+
+  footer.page {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    font-size: 12.5px;
+    color: var(--text-dim);
+  }
+</style>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+
+<main>
+  <header class="page">
+    <div class="eyebrow">Dub-Box &middot; hardware reference</div>
+    <h1>Battery power architecture</h1>
+    <p class="lede">
+      One 3.7V Li-ion cell feeding four circuits with very different needs: a
+      digital 3.3–5V rail for the Teensy, a bursty 3.3V rail for the ESP32, a
+      current-hungry speaker amp, and a noise-sensitive 48V phantom supply
+      for the mic preamp. The plan below keeps them from fighting each other.
+    </p>
+  </header>
+
+  <section>
+    <h2>01 — System diagram</h2>
+    <div class="diagram">
+      <div class="shared-row">
+        <div class="node">3.7V Li-ion cell</div>
+        <span class="arrow-right">&#8594;</span>
+        <div class="node">Charge + protection IC<br><span class="mono" style="font-weight:400;font-size:12px;color:var(--text-dim)">MCP73871, USB-C in, power-path</span></div>
+      </div>
+
+      <div class="lanes">
+        <div class="lane" data-lane="teensy">
+          <div class="lane-label"><span class="swatch" style="background:var(--teensy)"></span>Teensy</div>
+          <div class="connector"></div>
+          <div class="node">5V buck-boost<br><span class="mono" style="font-weight:400;font-size:11.5px;color:var(--text-dim)">TPS63060</span></div>
+          <div class="connector"></div>
+          <div class="node endpoint">Teensy 4.1 + Audio Shield reg.</div>
+        </div>
+
+        <div class="lane" data-lane="esp32">
+          <div class="lane-label"><span class="swatch" style="background:var(--esp32)"></span>ESP32</div>
+          <div class="connector"></div>
+          <div class="node">Dedicated 3.3V buck<br><span class="mono" style="font-weight:400;font-size:11.5px;color:var(--text-dim)">TPS62203, own LC filter</span></div>
+          <div class="connector"></div>
+          <div class="node endpoint">ESP32 (WiFi)</div>
+        </div>
+
+        <div class="lane" data-lane="speaker">
+          <div class="lane-label"><span class="swatch" style="background:var(--speaker)"></span>Speaker</div>
+          <div class="connector"></div>
+          <div class="node">Class-D amp, direct off battery<br><span class="mono" style="font-weight:400;font-size:11.5px;color:var(--text-dim)">MAX98357A, I2S in</span></div>
+          <div class="connector"></div>
+          <div class="node endpoint">Speaker</div>
+        </div>
+
+        <div class="lane" data-lane="mic">
+          <div class="lane-label"><span class="swatch" style="background:var(--mic)"></span>Mic / 48V</div>
+          <div class="connector"></div>
+          <div class="node">Low-current 48V boost + LC filter<br><span class="mono" style="font-weight:400;font-size:11.5px;color:var(--text-dim)">2&times; 6.8k&#937; to XLR pins 2/3</span></div>
+          <div class="connector"></div>
+          <div class="node">Balanced preamp<br><span class="mono" style="font-weight:400;font-size:11.5px;color:var(--text-dim)">clean, filtered 5V tap</span></div>
+          <div class="connector"></div>
+          <div class="node endpoint">Audio Shield LINE IN</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>02 — One cable, power and data</h2>
+    <p style="margin-top:0;">
+      Teensy's own USB port already carries both power and data — that's what
+      the firmware's MTP drag-and-drop already runs over. Bring a single
+      external USB-C jack out to the enclosure and split it right at the
+      connector, and the same cable charges the battery <em>and</em> gives
+      you the file transfer, with no USB hub or switch chip involved.
+    </p>
+    <div class="diagram">
+      <div class="shared-row">
+        <div class="node">Panel USB-C jack</div>
+      </div>
+      <div class="lanes" style="grid-template-columns: 1fr 1fr;">
+        <div class="lane" data-lane="teensy">
+          <div class="lane-label"><span class="swatch" style="background:var(--teensy)"></span>Data</div>
+          <div class="connector"></div>
+          <div class="node">D+ / D&minus; / GND<br><span class="mono" style="font-weight:400;font-size:11.5px;color:var(--text-dim)">short USB-C&rarr;micro-USB pass-through</span></div>
+          <div class="connector"></div>
+          <div class="node endpoint">Teensy's native USB port</div>
+        </div>
+        <div class="lane" data-lane="mic">
+          <div class="lane-label"><span class="swatch" style="background:var(--mic)"></span>Power</div>
+          <div class="connector"></div>
+          <div class="node">VBUS / GND<br><span class="mono" style="font-weight:400;font-size:11.5px;color:var(--text-dim)">taps in parallel with the data leg</span></div>
+          <div class="connector"></div>
+          <div class="node endpoint">Charge IC input (section 01)</div>
+        </div>
+      </div>
+    </div>
+    <p class="note" style="margin-top:14px;">
+      Feed the charge IC's regulated system output into Teensy's <strong>VIN</strong>
+      pin, never into VUSB. Teensy 4.1 already has an onboard Schottky diode
+      between VUSB and VIN that arbitrates automatically &mdash; plugged into
+      USB, it runs off USB and the diode blocks any backfeed toward the host;
+      unplugged, it runs off VIN/battery. Wiring your own 5V rail into VUSB
+      instead would put two live 5V sources on the same net when a PC is also
+      connected &mdash; the one thing to avoid.
+    </p>
+  </section>
+
+  <section>
+    <h2>03 — Per-subsystem recommendation</h2>
+    <div class="cards">
+      <div class="card" data-lane="teensy">
+        <span class="tag">Teensy 4.1 + Audio Shield</span>
+        <h3>Buck-boost to 5V</h3>
+        <div class="part">TPS63060 &middot; up to 96% eff. &middot; 2A</div>
+        <p>The cell's 3.0–4.2V range straddles 5V, so a plain boost or buck alone can't cover the whole discharge curve — needs buck-boost. Feeds the Teensy's VIN and the Audio Shield's onboard regulator directly.</p>
+      </div>
+      <div class="card" data-lane="esp32">
+        <span class="tag">ESP32</span>
+        <h3>Its own 3.3V, not shared</h3>
+        <div class="part">TPS62203 &middot; 600mA&ndash;1A capable</div>
+        <p>WiFi TX bursts pull up to ~500mA for milliseconds. Sharing Teensy's onboard 3.3V regulator risks browning out both chips on the same spike — give the ESP32 a dedicated regulator sized for the burst.</p>
+      </div>
+      <div class="card" data-lane="speaker">
+        <span class="tag">Speaker</span>
+        <h3>I2S class-D amp</h3>
+        <div class="part">MAX98357A &middot; 2.7&ndash;5.5V in &middot; 3W @ 4&#937;</div>
+        <p>The codec's headphone out can't drive a real speaker at volume. Taking I2S straight from the Teensy (bypassing the SGTL5000's analog stage entirely) is cleaner than an analog class-D fed from line-out. Runs fine straight off the battery.</p>
+      </div>
+      <div class="card" data-lane="mic">
+        <span class="tag">Mic / 48V phantom</span>
+        <h3>Isolated low-current boost</h3>
+        <div class="part">Small boost, &lt;20mA cap. &middot; LC filtered</div>
+        <p>Phantom current is tiny (a few mA per mic) — efficiency doesn't matter, <strong>noise does</strong>. Filter hard before the 6.8k&#937; feed resistors, and run the preamp gain stage off its own clean, decoupled tap — not a rail shared with the digital boards.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>04 — Current budget</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Subsystem</th><th class="num">Typical</th><th class="num">Peak</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="swatch" style="background:var(--teensy)"></span>Teensy 4.1 (display, SD, audio DSP)</td><td class="num mono">150&ndash;250mA</td><td class="num mono">350mA</td></tr>
+          <tr><td><span class="swatch" style="background:var(--esp32)"></span>ESP32 (WiFi active)</td><td class="num mono">80&ndash;160mA</td><td class="num mono">500mA</td></tr>
+          <tr><td>SGTL5000 codec</td><td class="num mono">15&ndash;20mA</td><td class="num mono">&mdash;</td></tr>
+          <tr><td><span class="swatch" style="background:var(--speaker)"></span>Speaker amp (moderate volume)</td><td class="num mono">100&ndash;300mA</td><td class="num mono">1&ndash;2A</td></tr>
+          <tr><td><span class="swatch" style="background:var(--mic)"></span>48V phantom + preamp</td><td class="num mono">~200mA*</td><td class="num mono">&mdash;</td></tr>
+          <tr class="total"><td>Total (battery-equivalent)</td><td class="num mono">~600&ndash;900mA</td><td class="num mono">2&ndash;2.5A</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note" style="margin-top:12px;">
+      *48V @ 15mA out &#8776; 0.7W, which is ~200mA at 3.7V after boost losses — small in isolation, but it's the one rail where clean current matters more than the amount. Size the battery's discharge (C) rating above the 2&ndash;2.5A peak, and pick a capacity against your target runtime — a 2500&ndash;3000mAh single cell gives roughly 3&ndash;4 hours at typical draw with headroom for peaks.
+    </p>
+  </section>
+
+  <section>
+    <h2>05 — Things that will bite you if skipped</h2>
+    <div class="risks">
+      <div class="risk">
+        <span class="num">01</span>
+        <p><strong>Noise into the mic path.</strong> Every switching regulator here (5V, 3.3V, 48V) radiates and conducts switching ripple. The 48V rail and the preamp are the most sensitive things in the whole system — filter the boost output hard (LC, then ideally a linear post-regulator) before it ever reaches the phantom resistors or the preamp's supply pin.</p>
+      </div>
+      <div class="risk">
+        <span class="num">02</span>
+        <p><strong>Star grounding.</strong> One single return path to the battery negative terminal, with the mic/phantom analog ground kept separate until that one point. Loop grounds between the digital boards and the analog front end and you'll hear it as hum or whine.</p>
+      </div>
+      <div class="risk">
+        <span class="num">03</span>
+        <p><strong>Real battery protection.</strong> Never wire a bare Li-ion cell straight to a board of converters. Use a protected cell, or add over-charge/over-discharge/over-current protection (e.g. a DW01+FS8205 pair) ahead of everything else.</p>
+      </div>
+      <div class="risk">
+        <span class="num">04</span>
+        <p><strong>Power-path charging.</strong> If you want to use the device while it's plugged in and charging, the charge IC needs to be a power-path design (like the MCP73871) — a simple linear charger without power-path forces the battery through charge/discharge cycles while you're actively drawing current, which is harder on the cell.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="page">
+    Component picks are a reasonable starting point, not a validated BOM — confirm exact current draw against your actual display/amp/mic choices before finalizing regulator sizing.
+  </footer>
+</main>
