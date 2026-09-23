@@ -1,0 +1,18 @@
+{
+  "tracks": [
+    {
+      "id": "original-song",
+      "recording_group": "original-session",
+      "split": "train",
+      "rights": "REPLACE with recording ownership or licensed training permission",
+      "sources": {
+        "vocals": "audio/vocals.wav",
+        "other": "audio/other.wav",
+        "guitar": "audio/guitar.wav",
+        "piano": "audio/piano.wav",
+        "bass": "audio/bass.wav",
+        "drums": "audio/drums.wav"
+      }
+    }
+  ]
+}

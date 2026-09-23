@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Audio.h>
+#include "../../packages/modular/dsp.h"
 
 namespace dubbox {
 
@@ -28,6 +29,21 @@ struct SynthPatch {
 // low-pass filter. Its chorus and reverb amounts are send levels into an effect shared by all the
 // instruments (see chorusSend() / reverbSend()). The caller (DrumMachine's sequencer, live keys) decides
 // which voice plays which note and when it ends. The default patch is a piano-like sound.
+class ModularAudio : public AudioStream {
+ public:
+  ModularAudio() : AudioStream(0, nullptr) {}
+  modular::Engine engine;
+  bool enabled = false;
+  void update() override {
+    if (!enabled || !engine.sounding()) return;
+    audio_block_t* block = allocate();
+    if (!block) return;
+    float samples[AUDIO_BLOCK_SAMPLES];
+    engine.render(samples, AUDIO_BLOCK_SAMPLES);
+    for (int i = 0; i < AUDIO_BLOCK_SAMPLES; ++i) block->data[i] = samples[i] * 32767.f;
+    transmit(block); release(block);
+  }
+};
 class Synth {
  public:
   static constexpr int kVoices = 6;
@@ -49,6 +65,9 @@ class Synth {
   void setEnabled(bool on);
   bool enabled() const { return enabled_; }
 
+  bool isModular() const { return modularMode_; }
+  const modular::Patch& modularPatch() const { return modular_.engine.patch; }
+  bool setModular(bool on, const modular::Patch& p);
   const SynthPatch& patch() const { return patch_; }
   void setPatch(const SynthPatch& p);
   // Sets one parameter by index (clamped to its range); false for a bad index.
@@ -62,6 +81,9 @@ class Synth {
   void assign(int index, int value);  // stores one clamped parameter (does not apply it)
   void apply();  // pushes the patch to the voices and effects
 
+  ModularAudio modular_;
+  bool modularMode_ = false;
+  AudioConnection* modularConnection_ = nullptr;
   SynthPatch patch_;
   bool enabled_ = true;
   float osc2Ratio_ = 2.0f;  // oscillator 2 frequency / oscillator 1 frequency

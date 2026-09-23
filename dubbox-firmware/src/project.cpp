@@ -101,6 +101,9 @@ FLASHMEM bool ProjectManager::save() {
   f.printf("PADS=%d,%d,%d,%d\n", drums.padRoute(0), drums.padRoute(1), drums.padRoute(2), drums.padRoute(3));
   f.printf("INST=%d\n", drums.instrumentCount());
   for (int inst = 0; inst < drums.instrumentCount(); ++inst) {
+    char patchText[128];
+    modular::format(patchText, sizeof(patchText), drums.isModular(inst), drums.modularPatch(inst));
+    f.printf("MOD%d=%s\n", inst, patchText);
     f.printf("SYNTH%d=", inst);
     for (int i = 0; i < Synth::kParams; ++i) f.printf(i ? ",%d" : "%d", drums.synthParam(inst, i));
     f.printf("\n");
@@ -131,6 +134,8 @@ FLASHMEM bool ProjectManager::save() {
   }
   f.printf("\n");
   for (int i = 0; i < kNumTracks; ++i) {
+    f.printf("PAN%d=%d\n", i, engine_->trackPan(i));
+    savedPan_[i] = engine_->trackPan(i);
     const char* file = engine_->trackFilename(i);
     if (file == nullptr) {
       f.printf("T%d=\n", i);
@@ -203,6 +208,11 @@ FLASHMEM bool ProjectManager::loadFile(const char* name, Loaded& out) {
       if (c != '\r') line[n++] = c;
     }
     line[n] = '\0';
+    int panTrack, panValue;
+    if (sscanf(line, "PAN%d=%d", &panTrack, &panValue) == 2 && panTrack >= 0 && panTrack < kNumTracks) {
+      out.pan[panTrack] = constrain(panValue, -1000, 1000);
+      continue;
+    }
     if (strncmp(line, "OFF=", 4) == 0) {
       const char* q = line + 4;
       for (int t = 0; t < kNumTracks && *q != '\0'; ++t) {
@@ -223,6 +233,9 @@ FLASHMEM bool ProjectManager::loadFile(const char* name, Loaded& out) {
       }
     } else if (strncmp(line, "INST=", 5) == 0) {
       out.instCount = constrain(atoi(line + 5), 0, DrumMachine::kMaxInstruments);
+    } else if (n >= 5 && strncmp(line, "MOD", 3) == 0 && line[3] >= '0' && line[3] < '0' + DrumMachine::kMaxInstruments && line[4] == '=') {
+      int i = line[3] - '0';
+      modular::parse(line + 5, out.modularType[i], out.modularPatch[i]);
     } else if (strncmp(line, "SYNTH", 5) == 0 &&
                (line[5] == '=' || (line[5] >= '0' && line[5] < '0' + DrumMachine::kMaxInstruments && line[6] == '='))) {
       int idx = 0;  // "SYNTH=" is an older file: its single synth is instrument 1
@@ -345,6 +358,7 @@ FLASHMEM bool ProjectManager::loadFile(const char* name, Loaded& out) {
 FLASHMEM void ProjectManager::unloadAll() {
   engine_->drums().reset();
   for (int i = 0; i < kNumTracks; ++i) {
+    engine_->setTrackPan(i, 0);
     if (engine_->trackLoaded(i)) engine_->unloadTrack(i);
     savedFile_[i][0] = '\0';
     savedClipSig_[i] = 0;
@@ -401,6 +415,10 @@ FLASHMEM bool ProjectManager::openProject(const char* rawName) {
   if (open_) closeProject();
   unloadAll();
 
+  for (int i = 0; i < kNumTracks; ++i) {
+    engine_->setTrackPan(i, data.pan[i]);
+    savedPan_[i] = data.pan[i];
+  }
   bool loaded[kNumTracks] = {false, false, false, false};
   for (int i = 0; i < kNumTracks; ++i) {
     if (data.files[i][0] == '\0') continue;
@@ -448,7 +466,9 @@ FLASHMEM bool ProjectManager::openProject(const char* rawName) {
     int instCount = data.instCount;
     if (instCount == 0 && data.oldFormat) instCount = 1;  // an older file's single synth
     for (int i = 0; i < instCount; ++i) {
-      drums.addInstrument();
+      drums.addInstrument(data.modularType[i] == 1);
+      drums.setModular(i, data.modularType[i] == 1, data.modularPatch[i]);
+      if(data.modularType[i]) Serial.printf("PROJECT: modular %d patch %08lx\n", i, (unsigned long)modular::signature(data.modularPatch[i]));
       if (data.hasSynth[i]) drums.setSynthAll(i, data.synth[i]);
     }
     Serial.printf("PROJECT: %d instrument(s)\n", drums.instrumentCount());
@@ -527,6 +547,7 @@ void ProjectManager::update() {
   bool differs = beatMask_ != savedBeatMask_ || engine_->drums().signature() != savedDrumSig_;
   for (int i = 0; i < kNumTracks && !differs; ++i) {
     const char* file = engine_->trackFilename(i);
+    if (engine_->trackPan(i) != savedPan_[i]) differs = true;
     const char* saved = savedFile_[i];
     if ((file == nullptr) != (saved[0] == '\0')) {
       differs = true;

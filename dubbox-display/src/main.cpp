@@ -6,11 +6,14 @@
 #include "ui.h"
 #include "teensy_link.h"
 #include "wifi_upload.h"
+#include "stem_client.h"
+#include "screen_mirror.h"
 
 void lcmSetSpiHz(uint32_t hz);
 
 void setup() {
-  Serial.begin(115200);
+  Serial.setTxBufferSize(4096);
+  Serial.begin(921600);
   delay(500);
   Serial.println("Dub-Box display: Dub-Box UI");
   SSD2828_Initial();
@@ -35,20 +38,32 @@ void setup() {
   lcmSetSpiHz(LCM_FAST_SPI_HZ);
   Serial.printf("touch init: %s\n", touchBegin() ? "OK" : "FAILED");
   teensylink::begin();
+  mirror::begin();
   wifiup::begin();
+  stemclient::begin();
   ui::begin();
 }
 
 // Debug: lines typed on the USB serial console are forwarded to the Teensy
 // unchanged (e.g. "O,DEMO" or "Q"), so the link can be exercised from a PC.
 static void forwardDebugLines() {
-  static char buf[64];
+  static char buf[192];
   static int len = 0;
   while (Serial.available()) {
     char c = (char)Serial.read();
     if (c == '\n') {
       buf[len] = '\0';
-      if (len > 3 && strncmp(buf, "!up,", 4) == 0) {
+      if (strcmp(buf, "!state") == 0) {
+        Serial.printf("STATE: heap free %lu minimum %lu largest %lu\n", (unsigned long)ESP.getFreeHeap(), (unsigned long)ESP.getMinFreeHeap(), (unsigned long)ESP.getMaxAllocHeap());
+        const auto& st = teensylink::state();
+        Serial.printf("STATE: linked %d project %d %s instruments %d preview %d pan %d,%d,%d,%d\n",
+          teensylink::connected(),st.project.open,st.project.name,st.drums.instCount,st.drums.previewOn,
+          st.panPermille[0],st.panPermille[1],st.panPermille[2],st.panPermille[3]);
+        for(int i=0;i<st.drums.instCount;++i) {
+          char patch[128]; modular::format(patch,sizeof(patch),st.instrumentModular[i],st.modularPatch[i]);
+          Serial.printf("STATE: instrument %d patch %s notes %d\n",i,patch,st.drums.noteCount[0][i]);
+        }
+      } else if (len > 3 && strncmp(buf, "!up,", 4) == 0) {
         wifiup::debugUpload(atoi(buf + 4));
       } else if (len > 0) {
         Serial2.print(buf);

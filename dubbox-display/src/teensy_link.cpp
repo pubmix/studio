@@ -39,6 +39,7 @@ uint32_t g_previewHoldUntil = 0;
 uint32_t g_padModeHoldUntil = 0;
 uint32_t g_synthHoldUntil = 0;
 bool g_synthChanged = false;
+uint32_t g_modHoldUntil[kMaxInstruments] = {};
 uint32_t g_instHoldUntil = 0;
 bool g_instChanged = false;
 uint32_t g_clickHoldUntil = 0;
@@ -351,6 +352,18 @@ void handleLine(const char* line) {
     case 'u':
       handlePads(line);
       break;
+    case '@': {
+      int inst=-1, consumed=0, type=0; modular::Patch patch;
+      if (sscanf(line,"@,%d,%n",&inst,&consumed)==1 && consumed>0 && inst>=0 && inst<kMaxInstruments &&
+          millis()>=g_modHoldUntil[inst] && millis()>=g_instHoldUntil && modular::parse(line+consumed,type,patch)) {
+        if(g_state.instrumentModular[inst] != bool(type) || !modular::equal(g_state.modularPatch[inst],patch))
+          Serial.printf("modular: slot %d type %d patch %08lx\n", inst, type, (unsigned long)modular::signature(patch));
+        if(g_state.instrumentModular[inst] != bool(type)) g_instChanged=true;
+        if(!modular::equal(g_state.modularPatch[inst],patch)) g_synthChanged=true;
+        g_state.instrumentModular[inst]=type; g_state.modularPatch[inst]=patch;
+      }
+      break;
+    }
     case 'g':
       handleSynth(line);
       break;
@@ -482,6 +495,14 @@ void handleLine(const char* line) {
       if (sscanf(line, "I,%d", &mask) == 1 && mask != g_state.beatMask) {
         g_state.beatMask = mask;
         g_beatMaskChanged = true;
+      }
+      break;
+    }
+    case '~': {
+      int track, pan;
+      if (sscanf(line, "~,%d,%d", &track, &pan) == 2 && track >= 0 && track < kNumTracks) {
+        g_state.panPermille[track] = constrain(pan, -1000, 1000);
+        g_mixerChanged = true;
       }
       break;
     }
@@ -675,6 +696,7 @@ void sendClipOffset(int track, int clip, int32_t offsetMs) {
 void sendBeatFlag(int track, bool on) { Serial2.printf("I,%d,%d\n", track, on ? 1 : 0); }
 void sendAddFx(int track, int fxType) { Serial2.printf("A,%d,%d\n", track, fxType); }
 void sendActiveSlot(int track, int slot) { Serial2.printf("X,%d,%d\n", track, slot); }
+void sendPan(int track, int pan) { Serial2.printf("~,%d,%d\n", track, constrain(pan, -1000, 1000)); }
 void sendWet(int track, int wetPermille) { Serial2.printf("V,%d,%d\n", track, wetPermille); }
 void sendBypass(int track, bool bypassed) { Serial2.printf("Y,%d,%d\n", track, bypassed ? 1 : 0); }
 
@@ -768,20 +790,32 @@ void resizePatClip(int index, int lenBars) {
   Serial2.printf("l,%d,%d\n", index, lenBars);
 }
 
-void addInstrument() {
+void setModularPatch(int inst, const modular::Patch& patch) {
+  if(inst<0 || inst>=g_state.drums.instCount || !g_state.instrumentModular[inst] || !modular::valid(patch)) return;
+  g_state.modularPatch[inst]=patch;
+  g_modHoldUntil[inst]=millis()+kEditHoldMs;
+  char text[128]; modular::format(text,sizeof(text),1,patch);
+  Serial2.printf("@,%d,%s\n",inst,text);
+}
+
+void addInstrument(bool modular) {
   Drums& d = g_state.drums;
   if (d.instCount >= kMaxInstruments) return;
   const int i = d.instCount++;
+  g_state.instrumentModular[i] = modular;
+  g_state.modularPatch[i] = modular::Patch();
   g_state.synth[i] = SynthState();
   for (int p = 0; p < kNumPatterns; ++p) d.noteCount[p][i] = 0;
   g_instHoldUntil = millis() + kEditHoldMs;
-  Serial2.printf("i,%d,1\n", i);
+  Serial2.printf("i,%d,1,%d\n", i, modular ? 1 : 0);
 }
 
 void removeInstrument(int inst) {
   Drums& d = g_state.drums;
   if (inst < 0 || inst >= d.instCount) return;
   for (int i = inst; i + 1 < d.instCount; ++i) {
+    g_state.instrumentModular[i] = g_state.instrumentModular[i+1];
+    g_state.modularPatch[i] = g_state.modularPatch[i+1];
     g_state.synth[i] = g_state.synth[i + 1];
     for (int p = 0; p < kNumPatterns; ++p) {
       d.noteCount[p][i] = d.noteCount[p][i + 1];
@@ -789,6 +823,8 @@ void removeInstrument(int inst) {
     }
   }
   const int last = d.instCount - 1;
+  g_state.instrumentModular[last] = false;
+  g_state.modularPatch[last] = modular::Patch();
   g_state.synth[last] = SynthState();
   for (int p = 0; p < kNumPatterns; ++p) d.noteCount[p][last] = 0;
   --d.instCount;

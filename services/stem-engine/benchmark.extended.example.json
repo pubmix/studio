@@ -1,0 +1,46 @@
+{
+  "purpose": "Held-out multitrack comparison; replace all fixture paths and RoFormer checkpoint",
+  "tracks": [
+    {
+      "id": "held-out-song",
+      "mixture": "audio/mixture.wav",
+      "references": {
+        "vocals": "audio/vocals.wav",
+        "melody": "audio/melody.wav",
+        "bass": "audio/bass.wav",
+        "rhythm": "audio/rhythm.wav"
+      },
+      "source_references": {
+        "guitar": "audio/guitar.wav",
+        "piano": "audio/piano.wav"
+      }
+    }
+  ],
+  "configurations": [
+    {
+      "name": "demucs-baseline",
+      "settings": {
+        "preset": "fast",
+        "consistency": "none"
+      }
+    },
+    {
+      "name": "demucs-six",
+      "settings": {
+        "preset": "fast",
+        "mode": "extended",
+        "consistency": "none"
+      }
+    },
+    {
+      "name": "roformer-candidate",
+      "settings": {
+        "preset": "fast",
+        "backend": "roformer",
+        "model": "REPLACE_WITH_FULL_SOURCE_ROFORMER.ckpt",
+        "mode": "extended",
+        "consistency": "none"
+      }
+    }
+  ]
+}

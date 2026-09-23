@@ -4,14 +4,18 @@
 #include "screen_keyboard.h"
 #include "screen_load.h"
 #include "screen_menu.h"
+#include "screen_settings.h"
 #include "screen_picker.h"
 #include "screen_mixer.h"
 #include "screen_pattern.h"
 #include "screen_wifi.h"
+#include "wifi_upload.h"
+#include "screen_stems.h"
 #include "screen_playlist.h"
 #include "teensy_link.h"
 #include "touch_gt911.h"
 #include "ui_common.h"
+#include "screen_mirror.h"
 
 namespace ui {
 namespace {
@@ -24,6 +28,7 @@ bool touching = false;
 uint32_t lastTouchMs = 0;
 
 bool wasPlayingDrawn = false;
+int wasUploadPercentDrawn = -1;
 int wasPreviewDrawn = 0;  // drum loop / record state the transport was last drawn for
 
 int drumTransportState() {
@@ -35,6 +40,7 @@ uint32_t lastClockMs = 0;
 uint32_t lastDemoMs = 0;
 uint32_t lastSeekSendMs = 0;
 int lastTouchX = 0;
+int lastTouchY = 0;
 
 // Name shown in the header; set as soon as a project is created/opened (the
 // Teensy confirms it a moment later) and cleared on returning to the menu.
@@ -88,8 +94,14 @@ void drawHeaderFor(Screen s) {
     case Screen::Pattern:
       drawHeader(project, kTabPattern);
       break;
+    case Screen::Stems:
+      drawHeader("STEM SPLITTER", -1, "MENU");
+      break;
     case Screen::Wifi:
       drawHeader("WIFI UPLOAD", -1, "MENU");
+      break;
+    case Screen::Settings:
+      drawHeader("SETTINGS", -1, "MENU");
       break;
     case Screen::FilePicker: {
       char title[24];
@@ -141,8 +153,14 @@ void goTo(Screen s) {
     case Screen::FilePicker:
       picker::enter(picker::track());
       break;
+    case Screen::Stems:
+      stemscreen::enter();
+      break;
     case Screen::Wifi:
       wifiscreen::enter();
+      break;
+    case Screen::Settings:
+      settings::enter();
       break;
   }
   wasPlayingDrawn = g.playing;
@@ -169,6 +187,7 @@ bool nameTaken(const char* name) {
 }
 
 void onTouchDown(int x, int y) {
+  mirror::touch("down", x, y);
   HeaderHit hh = headerHit(x, y);
   if (hh == HeaderHit::Volume) {
     touchOwner = Owner::Volume;
@@ -299,8 +318,17 @@ void onTouchDown(int x, int y) {
     case Screen::Pattern:
       pattern::touchDown(x, y);
       break;
+    case Screen::Stems:
+      stemscreen::touchDown(x, y);
+      break;
     case Screen::Wifi:
       wifiscreen::touchDown(x, y);
+      break;
+    case Screen::Settings:
+      if (settings::touchDown(x, y)) {
+        playlist::init(); // Rebuild both cached waveform layers in the new palette.
+        goTo(Screen::Settings);
+      }
       break;
     case Screen::FilePicker: {
       picker::Action a = picker::touchDown(x, y);
@@ -317,6 +345,8 @@ void onTouchDown(int x, int y) {
 }
 
 void onTouchMove(int x, int y) {
+  static uint32_t lastTrace = 0;
+  if (millis() - lastTrace >= 50) { mirror::touch("move", x, y); lastTrace = millis(); }
   if (touchOwner == Owner::Volume) {
     setVolumeFromX(x, false);
     return;
@@ -332,6 +362,7 @@ void onTouchMove(int x, int y) {
 }
 
 void onTouchUp() {
+  mirror::touch("up", lastTouchX, lastTouchY);
   if (touchOwner == Owner::Volume) setVolumeFromX(lastTouchX, true);
   if (touchOwner == Owner::Slider) sliderSeek(lastTouchX, true);
   if (touchOwner == Owner::Body) {
@@ -352,7 +383,7 @@ void updateLink(uint32_t now) {
     if (g.linked) {
       teensylink::sendHello();
       // The menu means "no project open" — make the Teensy agree after any reset.
-      if (current == Screen::Menu) teensylink::sendCloseProject();
+      if (current == Screen::Menu || current == Screen::Settings) teensylink::sendCloseProject();
       if (current == Screen::LoadProject) loadscreen::enter();
     } else if (current == Screen::LoadProject) {
       loadscreen::refresh();
@@ -387,6 +418,7 @@ void updateLink(uint32_t now) {
 }  // namespace
 
 void begin() {
+  theme::begin();
   uint32_t t0 = millis();
   playlist::init();
   Serial.printf("ui art built in %lu ms\n", (unsigned long)(millis() - t0));
@@ -394,6 +426,9 @@ void begin() {
 }
 
 void update() {
+  const auto upload = wifiup::progress();
+  const bool saving = upload.stage == wifiup::Stage::Starting || upload.stage == wifiup::Stage::Sending;
+  g.uploadPercent = saving ? (upload.size ? static_cast<int>(100ULL * upload.sent / upload.size) : 0) : -1;
   uint32_t now = millis();
   updateLink(now);
 
@@ -422,6 +457,7 @@ void update() {
     int ly = (int)pts[0].x;
     lastTouchMs = now;
     lastTouchX = lx;
+    lastTouchY = ly;
     if (!touching) {
       touching = true;
       onTouchDown(lx, ly);
@@ -437,11 +473,13 @@ void update() {
   mixer::update(current == Screen::Mixer);
   pattern::update(current == Screen::Pattern);
   if (current == Screen::Wifi) wifiscreen::update();
+  if (current == Screen::Stems) stemscreen::update();
 
   if (inProject(current)) {
     int previewNow = drumTransportState();
     bool splitPlay = current == Screen::Pattern;
-    if (g.playing != wasPlayingDrawn || (splitPlay && previewNow != wasPreviewDrawn)) {
+    if (g.playing != wasPlayingDrawn || g.uploadPercent != wasUploadPercentDrawn || (splitPlay && previewNow != wasPreviewDrawn)) {
+      wasUploadPercentDrawn = g.uploadPercent;
       wasPlayingDrawn = g.playing;
       wasPreviewDrawn = previewNow;
       drawTransport(splitPlay);
@@ -452,6 +490,7 @@ void update() {
       drawClock();
     }
   }
+  mirror::frame(static_cast<int>(current));
 }
 
 }  // namespace ui

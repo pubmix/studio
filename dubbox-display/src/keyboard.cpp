@@ -65,7 +65,7 @@ bool onKey(const Keyboard& k, int midi, int x, int y, int margin) {
 void drawWhiteKey(const Keyboard& k, int i) {
   const Layout& L = k.layout;
   const int m = whiteMidi(k, i);
-  const uint16_t col = rgb565(isHeld(k, m) ? kWhiteHeldRgb : kWhiteRgb);
+  const uint16_t col = isHeld(k, m) ? rawRgb565(theme::palette().accent) : rawRgb565(kWhiteRgb);
   const int ww = whiteW(k);
   const int x = L.x0 + i * ww;
   const int right = x + ww - 4;
@@ -83,7 +83,7 @@ void drawBlackKey(const Keyboard& k, int i) {
   const Layout& L = k.layout;
   const int m = whiteMidi(k, i) + 1;
   fillRect(blackX(k, i), L.top, blackX(k, i) + blackW(k) - 1, L.top + L.blackH,
-           rgb565(isHeld(k, m) ? kBlackHeldRgb : kBlackRgb));
+           rawRgb565(isHeld(k, m) ? theme::palette().accent : kBlackRgb));
 }
 
 // Redraws the one key for `midi` (white or black).

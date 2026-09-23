@@ -165,7 +165,7 @@ FLASHMEM void EspLink::handleLine(AudioEngine& engine, const char* line) {
       lastPatClipSig_ = 0;
       lastPadSig_ = 0;
       lastInstSig_ = 0;
-      for (int i = 0; i < DrumMachine::kMaxInstruments; ++i) lastSynthSig_[i] = 0;
+      for (int i = 0; i < DrumMachine::kMaxInstruments; ++i) { lastSynthSig_[i] = 0; lastModSig_[i] = 0; }
       lastRhythmSig_ = 0;
       for (int p = 0; p < DrumMachine::kNumPatterns; ++p) {
         for (int i = 0; i < DrumMachine::kMaxInstruments; ++i) lastNoteSig_[p][i] = 0;
@@ -309,6 +309,14 @@ FLASHMEM void EspLink::handleLine(AudioEngine& engine, const char* line) {
       }
       break;
     }
+    case '@': {
+      int inst=-1, consumed=0, type=0; modular::Patch patch;
+      if (sscanf(line, "@,%d,%n", &inst, &consumed)==1 && consumed>0 && modular::parse(line+consumed,type,patch)) {
+        bool accepted = engine.drums().setModular(inst,type==1,patch);
+        Serial.printf("MODULAR: slot %d type %d patch %08lx %s\n", inst, type, (unsigned long)modular::signature(patch), accepted ? "accepted" : "rejected");
+      }
+      break;
+    }
     case 'g': {  // an instrument's whole patch
       int inst = 0, consumed = 0;
       if (sscanf(line, "g,%d%n", &inst, &consumed) != 1 || inst < 0 || inst >= engine.drums().instrumentCount()) break;
@@ -366,10 +374,10 @@ FLASHMEM void EspLink::handleLine(AudioEngine& engine, const char* line) {
       break;
     }
     case 'i': {
-      int inst = 0, on = 0;
-      if (sscanf(line, "i,%d,%d", &inst, &on) == 2) {
+      int inst = 0, on = 0, type = 0;
+      if (sscanf(line, "i,%d,%d,%d", &inst, &on, &type) >= 2) {
         if (on != 0) {
-          engine.drums().addInstrument();
+          if (inst == engine.drums().instrumentCount() && (type == 0 || type == 1)) engine.drums().addInstrument(type == 1);
         } else {
           engine.drums().removeInstrument(inst);
         }
@@ -465,6 +473,12 @@ FLASHMEM void EspLink::handleLine(AudioEngine& engine, const char* line) {
           slot >= 0 && slot < engine.trackFxSlotCount(track)) {
         engine.setTrackActiveFxSlot(track, slot);
       }
+      break;
+    }
+    case '~': {
+      int track, pan;
+      if (sscanf(line, "~,%d,%d", &track, &pan) == 2 && track >= 0 && track < kNumTracks)
+        engine.setTrackPan(track, pan);
       break;
     }
     case 'V': {
@@ -689,6 +703,11 @@ void EspLink::update(AudioEngine& engine, const float faders[kNumTracks]) {
       if (sendLine(clipLine)) lastClipSig_[i] = clipSig;
     }
 
+    int pan = engine.trackPan(i);
+    if (refresh || pan != lastPan_[i]) {
+      snprintf(buf, sizeof(buf), "~,%d,%d", i, pan);
+      if (sendLine(buf)) lastPan_[i] = pan;
+    }
     int types[3] = {-1, -1, -1};
     int count = engine.trackFxSlotCount(i);
     for (int slot = 0; slot < count && slot < 3; ++slot) types[slot] = engine.trackFxSlotType(i, slot);
@@ -733,6 +752,13 @@ void EspLink::update(AudioEngine& engine, const float faders[kNumTracks]) {
       }
     }
     for (int inst = 0; inst < drums.instrumentCount(); ++inst) {
+      uint32_t modSig = modular::signature(drums.modularPatch(inst)) ^ uint32_t(drums.isModular(inst));
+      if (refresh || modSig != lastModSig_[inst]) {
+        char text[128], report[144];
+        modular::format(text,sizeof(text),drums.isModular(inst),drums.modularPatch(inst));
+        snprintf(report,sizeof(report),"@,%d,%s",inst,text);
+        if (sendLine(report)) lastModSig_[inst]=modSig;
+      }
       uint32_t synthSig = 1;
       for (int i = 0; i < Synth::kParams; ++i) synthSig = synthSig * 31 + (drums.synthParam(inst, i) + 100);
       if (refresh || synthSig != lastSynthSig_[inst]) {

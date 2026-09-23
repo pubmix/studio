@@ -40,6 +40,8 @@ class AudioEngine {
   bool isTrackPlaying(int trackIndex);
   // Sets linear gain (0.0 = silent, 1.0 = unity) for a track's fader.
   void setTrackGain(int trackIndex, float gain);
+  void setTrackPan(int trackIndex, int permille);
+  int trackPan(int trackIndex) const { return trackPan_[trackIndex]; }
   // Master headphone volume (0.0-1.0, the SGTL5000's own volume register).
   void setMasterVolume(float volume01);
   float masterVolume() const { return masterVolume_; }
@@ -231,7 +233,11 @@ class AudioEngine {
 
   // One bus summing all tracks' effect outputs (each at its own wet level) into the final
   // mix, the way the dry mix is summed once via mixerL_/R_.
-  AudioMixer4 wetSubMix_;
+  AudioAmplifier wetTap_[kNumTracks];
+  AudioMixer4 wetSubMixL_, wetSubMixR_;
+  AudioConnection* wetTapL_[kNumTracks] = {};
+  AudioConnection* wetTapR_[kNumTracks] = {};
+  int trackPan_[kNumTracks] = {};
   AudioMixer4 finalMixL_;  // inputs: 0 dry, 1 wet, 2 drums, 3 piano
   AudioMixer4 finalMixR_;
   DrumMachine drums_;
@@ -254,20 +260,14 @@ class AudioEngine {
   // Bypassing only closes the send gate (sendMix_); the effect stays wired (wired once, the
   // first time it is switched on) so tails keep ringing out through the wet return.
   bool trackFxWired_[kNumTracks] = {false, false, false, false};
-  // Source level (fader x crop) captured when an effect is muted: the tail keeps playing at
-  // that level even if the fader is lowered afterwards.
-  float trackFxMuteHold_[kNumTracks] = {0.0f, 0.0f, 0.0f, 0.0f};
   AudioMixer4 sendMix_[kNumTracks];
   AudioConnection* patchSendIn_[kNumTracks] = {nullptr};
-  // The fader value last passed to setTrackGain(). Each track's fx send taps its player
-  // upstream of the fader-controlled dry mix, so the fader is folded into the wet gain too:
-  // pulling a fader down silences the fx along with the dry signal.
+  // Fader controls dry audio and new FX input, never the buffered wet return.
   float trackFaderGain_[kNumTracks] = {1.0f, 1.0f, 1.0f, 1.0f};
 
-  // Applies fader x crop gate to the track's dry mixer gain and re-derives its wet gain: the
-  // single place the two factors combine.
+  // Applies fader x crop to dry audio and the FX send; preserves wet tails.
   void recomputeTrackGain(int trackIndex);
-  // Re-applies wet level / bypass / fader / crop gate to wetSubMix_'s gain for the track.
+  // Updates the post-fader send and independent wet-level/pan return.
   void applyTrackFxMixGain(int trackIndex);
 
   // The AudioStream carrying effect `type`'s output for a track: delay_/freeverb_ (shared,

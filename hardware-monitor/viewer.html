@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dub-Box · Live screen</title>
+<style>
+:root{color-scheme:dark;font:15px system-ui,sans-serif;background:#0c1016;color:#e6edf6}body{margin:0;padding:28px;max-width:1440px;margin:auto}header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}h1{font-size:24px;letter-spacing:.08em;margin:0}small{color:#92a1b8}.pill{padding:8px 14px;border-radius:24px;background:#263242;color:#c4cdd9}.live{background:#153c30;color:#78e2b0}.bad{background:#492b24;color:#ffb99f}.screen{position:relative;aspect-ratio:16/9;border:1px solid #2a3545;border-radius:10px;overflow:hidden;background:#000}.screen img{display:block;width:100%;height:100%;object-fit:contain}.notice{position:absolute;inset:0;display:grid;place-content:center;text-align:center;padding:30px;background:#101620e8;font-size:20px}.hidden{display:none}footer{display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap;margin-top:18px;color:#99abc3}.details{margin-top:22px;border-top:1px solid #263242;padding-top:16px;font-size:13px;color:#8293aa}button{background:#1e2a3b;color:#dfeaff;border:1px solid #40516a;border-radius:6px;padding:7px 12px;cursor:pointer}#touch{font-variant-numeric:tabular-nums}a{color:#9ac4ff}
+</style>
+<header><div><h1>DUB-BOX</h1><small>Live screen · USB firmware mirror</small></div><span class="pill" id="state">Connecting</span></header>
+<div class="screen" id="screen"><img id="frame" alt="Live screen reconstructed from the ESP32 drawing stream"><div class="notice" id="notice">Waiting for the display stream…</div></div>
+<footer><span id="page">Screen: —</span><span id="touch">Touch: —</span><button id="full">Full screen</button></footer>
+<div class="details">This view follows the device’s drawing commands at its native 1280 × 720 resolution. It is a view-only mirror, not a camera image. Use the physical touchscreen to navigate.<br><span id="health"></span></div>
+<script>
+const $=id=>document.getElementById(id);let lastFrame=-1;
+async function update(){try{const r=await fetch('/status');if(!r.ok)throw Error('Recorder unavailable');const s=await r.json(),m=s.mirror;
+$('state').textContent=m.live?'LIVE':m.valid?'STREAM PAUSED':'WAITING';$('state').className='pill '+(m.live?'live':'bad');
+$('notice').className='notice '+(m.live?'hidden':'');$('notice').textContent=m.error||'Display stream paused. Check the USB connection.';
+$('page').textContent='Screen: '+m.screen;
+if(m.touch)$('touch').textContent=`Touch: ${m.touch.phase} · ${m.touch.x}, ${m.touch.y}`;
+$('health').textContent=`${m.commands.toLocaleString()} verified drawing commands · ${m.dropped} dropped · Teensy ${s.boards.teensy?.connected?'connected':'disconnected'}`;
+if(m.valid&&m.frames!==lastFrame){$('frame').src='/frame.png?t='+Date.now();lastFrame=m.frames;}
+}catch(e){$('state').textContent='DISCONNECTED';$('state').className='pill bad';$('notice').className='notice';$('notice').textContent='The local recorder is unavailable.';}setTimeout(update,200)}
+$('full').onclick=()=>$('screen').requestFullscreen();update();
+</script></html>

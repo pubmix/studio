@@ -49,3 +49,56 @@ press the PROGRAM button on the Teensy once.
 - Wiring: `docs/pin_map.md`. Display link and protocol: `src/esp_link.h`,
   `docs/display_architecture_brief.md`.
 - Do not read the SD card (MTP, saves, scans) while tracks are streaming; it locks the Teensy up.
+
+## Modular instrument
+
+The four instrument slots can now contain ordinary synths or six-voice modular
+instruments. The modular DSP is a validated graph inside a Teensy AudioStream;
+notes follow the same sequencer, keys and pads as existing synths. Typed routing,
+parameters and instrument type persist in backward-compatible `MODn=` project
+lines. Implementation: `src/synth.*`, `src/drum_machine.*`, `src/project.*`,
+`src/esp_link.*` and `../packages/modular`. See the
+[modular README](../packages/modular/README.md) for workflow, tests and current limits.
+
+## Per-track pan (2026-09-23)
+
+`AudioEngine::setTrackPan` accepts -1000 (left) through 0 (center) to 1000
+(right). Stereo tracks use a balance law: center preserves existing unity gains;
+panning attenuates the opposite channel without folding stereo to mono or boosting
+levels. Mono effect returns pass through separate left/right wet mixers so tails
+follow the same pan. Drum/synth buses are unchanged. Updates to both channel gains
+are made with audio interrupts disabled.
+
+The display command/state is `~,track,permille`, with bounded track/value handling
+and refresh on reconnect. Projects save `PAN0` through `PAN3`; older projects
+default to center. Pan changes participate in the existing debounced autosave,
+which waits until playback is stopped. New projects reset all pans.
+
+The Teensy PlatformIO build passed, including the concurrent modular-synth changes.
+Flash code 221536 bytes; RAM1 variables 148352 bytes; RAM2 variables 172352 bytes.
+Existing warnings in modular code, storage, and link formatting remain. Host UI
+tests cover encoder bounds/center/track targeting; physical stereo listening and
+SD save/reload validation are pending coordinated hardware checks.
+
+### Pan hardware deployment and persistence
+
+On 2026-09-23 both combined firmware images were installed. The Teensy exact-model
+loader retry completed; ESP32 programming passed hash verification and startup
+reported touch/link OK. Actual UART state showed pan -750,500,0,0 in test project
+MOD0923073143 before and after two close/reopen cycles. The recorder was restored
+to a live, valid main menu with zero dropped mirror records. Host touch and audio
+gain tests passed; physical finger interaction and listening remain unverified.
+
+## Default mixer effect tails
+
+Track faders now control the dry mix and the input sent into each enabled effect.
+The wet return stays at its selected wet level and pan. Pulling a fader to zero
+stops new input while existing delay/reverb decays naturally; bypass and clip gates
+also stop the send without cutting the return. Raising the fader resumes the send.
+Wet level and master volume still control audible output. Effects without stored
+tails (or a delay with zero feedback) only linger as their own processing permits.
+Reassigning a shared effect or changing its chain can still interrupt its tail.
+
+Validation: actual gain-method tests with sanitizer checks cover partial/zero fader,
+restored send, bypass, crop, independent tracks, wet-level zero and stereo pan. The
+Teensy build passed. This verifies routing; physical listening remains user validation.

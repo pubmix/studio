@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pubmix.github.io/studio/contracts/stem-set/v2/manifest.schema.json",
+  "title": "Studio extended prepared set (service export; firmware support pending)",
+  "type": "object",
+  "required": [
+    "api_version",
+    "set_id",
+    "sample_rate",
+    "frames",
+    "alignment_offset_frames",
+    "stems"
+  ],
+  "properties": {
+    "api_version": {
+      "const": 2
+    },
+    "set_id": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4294967295
+    },
+    "sample_rate": {
+      "const": 44100
+    },
+    "frames": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "alignment_offset_frames": {
+      "const": 0
+    },
+    "stems": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 16,
+      "items": {
+        "type": "object",
+        "required": [
+          "role",
+          "file",
+          "sha256",
+          "channel",
+          "bank",
+          "lane",
+          "group"
+        ],
+        "properties": {
+          "role": {
+            "type": "string",
+            "pattern": "^[A-Z_]+$"
+          },
+          "file": {
+            "type": "string",
+            "pattern": "^[a-z_]+\\.wav$"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "channel": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16
+          },
+          "bank": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4
+          },
+          "lane": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4
+          },
+          "group": {
+            "enum": [
+              "VOCALS",
+              "MELODY",
+              "BASS",
+              "RHYTHM"
+            ]
+          },
+          "presence_confidence": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          },
+          "separation_quality": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  }
+}

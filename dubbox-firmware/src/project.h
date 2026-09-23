@@ -56,6 +56,7 @@ class ProjectManager {
     uint32_t clipS[kNumTracks][AudioEngine::kMaxClips];
     uint32_t clipE[kNumTracks][AudioEngine::kMaxClips];
     int clipN[kNumTracks];
+    int pan[kNumTracks] = {};
     uint8_t beatMask;
     int32_t offsetMs[kNumTracks];  // legacy track-wide offset (OFF= line), default for clips
     int32_t clipO[kNumTracks][AudioEngine::kMaxClips];
@@ -66,6 +67,8 @@ class ProjectManager {
     int padRoute[DrumMachine::kPads];
     int padNote[DrumMachine::kPads];
     int instCount;  // synth instruments
+    int modularType[DrumMachine::kMaxInstruments] = {};
+    modular::Patch modularPatch[DrumMachine::kMaxInstruments];
     bool hasSynth[DrumMachine::kMaxInstruments];
     int synth[DrumMachine::kMaxInstruments][Synth::kParams];
     DrumMachine::Note notes[DrumMachine::kNumPatterns][DrumMachine::kMaxInstruments][DrumMachine::kMaxNotes];
@@ -87,6 +90,7 @@ class ProjectManager {
   // Autosave bookkeeping.
   uint32_t savedClipSig_[kNumTracks] = {0};
   uint8_t beatMask_ = 0;
+  int savedPan_[kNumTracks] = {};
   uint8_t savedBeatMask_ = 0;
   uint32_t savedDrumSig_ = 0;
   char savedFile_[kNumTracks][AudioEngine::kMaxFilenameLen] = {{0}};

@@ -58,7 +58,10 @@ class DrumMachine {
   // ---- Instruments (synths) ----
   int instrumentCount() const { return instCount_; }
   // Appends an instrument with the default sound; false if all four exist.
-  bool addInstrument();
+  bool addInstrument(bool modular = false);
+  bool isModular(int i) const { return inst_[i].isModular(); }
+  const modular::Patch& modularPatch(int i) const { return inst_[i].modularPatch(); }
+  bool setModular(int i, bool on, const modular::Patch& p) { return i >= 0 && i < instCount_ && inst_[i].setModular(on, p); }
   // Deletes an instrument and its notes; the ones after it move down one place.
   bool removeInstrument(int inst);
   const SynthPatch& synthPatch(int inst) const { return inst_[inst].patch(); }

@@ -37,3 +37,30 @@ Real pretrained model inference completed on synthetic audio. Every listed resul
 - Checkpoint fingerprints are recorded after loading. If replacing weights under an unchanged model name, use a new output root to avoid reusing an older valid output cache.
 
 See [test output](test-results.txt), [machine-readable summary](verification-summary.json), [benchmark protocol](BENCHMARKING.md) and [research sources](RESEARCH.md).
+
+## Current Dub-Box integration validation — 2026-09-22
+
+- 41 engine/integration tests passed (20 existing plus 21 added). Coverage includes
+  mono/stereo resampling, shared gain and headroom, silence, master preservation,
+  canonical ordering, corrupt/truncated/symlink assets, failed export cleanup,
+  multipart request bytes, disconnected/busy/playing devices, SD failures,
+  collision-renamed files, no retry after partial failure, and CLI export.
+- Root `make test` passed 5,153 C++ checks in 11 groups and eight importer tests.
+- Root `make simulator` built successfully. The older desktop simulator loaded
+  the actual exported synthetic set and rendered 88,200 frames with nonzero energy
+  and no clipping. This is compatibility evidence, not current-board playback.
+- Actual pretrained Fast Demucs CPU inference completed on a two-second 48 kHz
+  mono synthetic signal, followed by export to four 88,200-frame stereo PCM16 WAVs
+  at 44.1 kHz. The unchanged firmware validator reported `stage: ready`.
+  Cached weights were used; Hugging Face metadata requests failed in the sandbox
+  before falling back to cache. This does not measure music separation quality.
+- A real localhost HTTP test simulated the ESP32 endpoints and received all four
+  WAVs byte-for-byte through the streaming multipart client in canonical order.
+  It did not connect to the physical ESP32 or write the Teensy's SD.
+- The existing launcher with `STUDIO_PYTHON` override verified the exported set.
+- CI now installs the ML-free service/test dependencies and runs `make test-stems`
+  in the existing Linux/macOS workflow. Remote CI has not been run for this patch.
+
+No board was flashed by this integration. Real WiFi transfer, SD playback,
+manual track assignment and listening validation remain hardware follow-up.
+The current firmware has no atomic four-file import or automatic assignment API.

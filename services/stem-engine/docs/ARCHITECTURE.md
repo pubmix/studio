@@ -2,7 +2,7 @@
 
 ## Stable boundary
 
-`Engine.separate(path, Settings(...), progress=callback)` returns a completed directory. Backends accept frames×channels float arrays and must return source arrays at the input sample rate, length and gain. Native adapter sources are canonicalized before publication. Missing categories and unknown sources are errors. Public metadata and CLI expose only VOCALS, MELODY, BASS, RHYTHM.
+`Engine.separate(path, Settings(...), progress=callback)` returns a completed directory. Backends accept frames×channels float arrays and must return source arrays at the input sample rate, length and gain. Native adapter sources are canonicalized before publication. Missing categories and unknown sources are errors. Default metadata and CLI expose VOCALS, MELODY, BASS, RHYTHM. Extended modes publish model sources and a four-stem mixdown; see [extended architecture](EXTENDED_STEMS.md).
 
 Input MP3/WAV is decoded once. Outputs retain its decoded sample rate, frame count and mono/stereo channel count. MP3 synchronization refers to the decoder's gapless sample grid, not compressed bytes or an unavailable pre-encoding master. Model adapters resample as needed, restore the grid, and allow at most two samples of resampling rounding. Larger mismatches fail. This checks shape, not a model's internal perceptual phase accuracy.
 

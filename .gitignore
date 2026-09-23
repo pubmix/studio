@@ -29,3 +29,13 @@ node_modules/
 *.lst
 *.sym
 *.zip
+
+# Companion state, secrets, model caches, and PlatformIO dependencies
+**/.pio/
+**/.models/
+**/.pytest_cache/
+**/device-token
+**/server.lock
+**/jobs/
+**/monitor-data/
+*.log
