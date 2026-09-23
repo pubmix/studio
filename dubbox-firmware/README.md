@@ -88,3 +88,17 @@ reported touch/link OK. Actual UART state showed pan -750,500,0,0 in test projec
 MOD0923073143 before and after two close/reopen cycles. The recorder was restored
 to a live, valid main menu with zero dropped mirror records. Host touch and audio
 gain tests passed; physical finger interaction and listening remain unverified.
+
+## Default mixer effect tails
+
+Track faders now control the dry mix and the input sent into each enabled effect.
+The wet return stays at its selected wet level and pan. Pulling a fader to zero
+stops new input while existing delay/reverb decays naturally; bypass and clip gates
+also stop the send without cutting the return. Raising the fader resumes the send.
+Wet level and master volume still control audible output. Effects without stored
+tails (or a delay with zero feedback) only linger as their own processing permits.
+Reassigning a shared effect or changing its chain can still interrupt its tail.
+
+Validation: actual gain-method tests with sanitizer checks cover partial/zero fader,
+restored send, bypass, crop, independent tracks, wet-level zero and stereo pan. The
+Teensy build passed. This verifies routing; physical listening remains user validation.

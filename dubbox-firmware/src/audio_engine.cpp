@@ -396,14 +396,11 @@ void AudioEngine::recomputeTrackGain(int trackIndex) {
 }
 
 void AudioEngine::applyTrackFxMixGain(int trackIndex) {
-  // Not zeroed while bypassed: the send gate (sendMix_) stops new audio entering the
-  // effect, and the wet return keeps playing whatever tail is still ringing. While
-  // muted it plays at the level held from the moment of muting, so moving the fader
-  // (or the playhead leaving the crop window) does not cut the tail off.
-  float source = trackFxBypassed_[trackIndex]
-                     ? trackFxMuteHold_[trackIndex]
-                     : trackFaderGain_[trackIndex] * trackCropGain_[trackIndex];
-  const float gain = trackFxWetLevel_[trackIndex] * source;
+  // Post-fader send, independent return: zero/bypass/crop stops new input,
+  // while the already-buffered delay/reverb decays at the selected wet level.
+  const float source = trackFaderGain_[trackIndex] * trackCropGain_[trackIndex];
+  sendMix_[trackIndex].gain(0, trackFxBypassed_[trackIndex] ? 0.0f : source);
+  const float gain = trackFxWetLevel_[trackIndex];
   const float pan = trackPan_[trackIndex] / 1000.0f;
   wetSubMixL_.gain(trackIndex, gain * (pan > 0 ? 1.0f - pan : 1.0f));
   wetSubMixR_.gain(trackIndex, gain * (pan < 0 ? 1.0f + pan : 1.0f));
@@ -754,9 +751,6 @@ void AudioEngine::setTrackFxWetLevel(int trackIndex, float amount01) {
 
 void AudioEngine::setTrackFxBypassed(int trackIndex, bool bypassed) {
   if (bypassed == trackFxBypassed_[trackIndex]) return;
-  if (bypassed) {
-    trackFxMuteHold_[trackIndex] = trackFaderGain_[trackIndex] * trackCropGain_[trackIndex];
-  }
   trackFxBypassed_[trackIndex] = bypassed;
   if (!bypassed) {
     // Switching on: wire the chain the first time, and re-claim a shared
@@ -771,7 +765,6 @@ void AudioEngine::setTrackFxBypassed(int trackIndex, bool bypassed) {
     trackFxWired_[trackIndex] = true;
     if (needWire) rebuildTrackFxChain(trackIndex, /*allowClaim=*/true);
   }
-  sendMix_[trackIndex].gain(0, bypassed ? 0.0f : 1.0f);
   applyTrackFxMixGain(trackIndex);
 }
 
