@@ -1,0 +1,9 @@
+**/.pio/
+**/__pycache__/
+**/.venv/
+**/node_modules/
+work/
+outputs/
+*.log
+*.jsonl
+.env*

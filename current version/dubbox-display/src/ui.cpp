@@ -1,0 +1,630 @@
+#include "ui.h"
+#include "ui_transition.h"
+#include "screen_mirror.h"
+#include <Arduino.h>
+#include <string.h>
+#include "screen_keyboard.h"
+#include "screen_load.h"
+#include "screen_menu.h"
+#include "screen_themes.h"
+#include "theme.h"
+#include "screen_picker.h"
+#include "screen_mixer.h"
+#include "screen_pattern.h"
+#include "screen_input.h"
+#include "screen_bluetooth.h"
+#include "screen_controls.h"
+#include "screen_midi.h"
+#include "screen_wifi.h"
+#include "screen_playlist.h"
+#include "teensy_link.h"
+#include "touch_gt911.h"
+#include "debug_log.h"
+#include "ui_common.h"
+
+namespace ui {
+namespace {
+
+Screen current = Screen::Menu;
+bool recoverStartupProject = true;
+bool screenReady = false;
+bool transitionPending = false;
+bool transitionStarted = false;
+bool suppressTouchUntilRelease = false;
+
+enum class Owner { None, Header, Transport, Slider, Volume, Body };
+Owner touchOwner = Owner::None;
+bool touching = false;
+uint32_t lastTouchMs = 0;
+
+bool wasPlayingDrawn = false;
+int wasPreviewDrawn = 0;  // drum loop / record state the transport was last drawn for
+
+int drumTransportState() {
+  const teensylink::Drums& d = teensylink::state().drums;
+  return (d.previewOn ? 1 : 0) | (d.recording ? 2 : 0) | (d.countIn ? 4 : 0) | (d.clickOn ? 8 : 0) |
+         (d.padMode == 1 ? 16 : 0);
+}
+uint32_t lastClockMs = 0;
+uint32_t lastDemoMs = 0;
+uint32_t lastSeekSendMs = 0;
+int lastTouchX = 0;
+
+// Name shown in the header; set as soon as a project is created/opened (the
+// Teensy confirms it a moment later) and cleared on returning to the menu.
+char shownProject[24] = {0};
+Screen pickerReturn = Screen::Playlist;
+
+void goTo(Screen s, bool closeProject = true);
+
+void openPicker(int track) {
+  pickerReturn = current;
+  picker::setTrack(track);
+  goTo(Screen::FilePicker);
+}
+
+void sliderSeek(int x, bool final) {
+  uint32_t now = millis();
+  uint32_t ms = sliderMsForX(x);
+  if (final || now - lastSeekSendMs >= 60) {
+    lastSeekSendMs = now;
+    seekToMs(ms);
+  } else {
+    g.posMs = ms;
+    g.posHoldUntil = now + 450;
+  }
+  drawSlider();
+  drawClock();
+}
+
+bool inProject(Screen s) {
+  return s == Screen::Mixer || s == Screen::Playlist || s == Screen::Pattern;
+}
+
+void drawHeaderFor(Screen s) {
+  const char* project = shownProject[0] ? shownProject : "PROJECT";
+  switch (s) {
+    case Screen::Themes:
+      drawHeader("THEMES", -1, "MENU");
+      break;
+    case Screen::Menu:
+      drawHeader("MENU", -1);
+      break;
+    case Screen::NewProject:
+      drawHeader("NEW PROJECT", -1, "MENU");
+      break;
+    case Screen::LoadProject:
+      drawHeader("LOAD PROJECT", -1, "MENU");
+      break;
+    case Screen::Mixer:
+      drawHeader(project, kTabMixer);
+      break;
+    case Screen::Playlist:
+      drawHeader(project, kTabPlaylist);
+      break;
+    case Screen::Pattern:
+      drawHeader(project, kTabPattern);
+      break;
+    case Screen::Input:
+      drawHeader(project, kTabInput);
+      break;
+    case Screen::Wifi:
+      drawHeader("WIFI UPLOAD", -1, "MENU");
+      break;
+    case Screen::Midi:
+      drawHeader("USB MIDI", -1, "MENU");
+      break;
+    case Screen::Bluetooth:
+      drawHeader("BLUETOOTH", -1, "MENU");
+      break;
+    case Screen::Controls:
+      drawHeader("CONTROLS TEST", -1, "MENU");
+      break;
+    case Screen::FilePicker: {
+      char title[24];
+      snprintf(title, sizeof(title), "ADD TO TRACK %d", picker::track() + 1);
+      drawHeader(title, -1, "BACK");
+      break;
+    }
+  }
+}
+
+void goTo(Screen s, bool closeProject) {
+  // Never compete for the BTE with an unfinished transition or stalled copy.
+  if (transitionPending || uitransition::hardwareBusy()) return;
+  const bool fade = screenReady && !recoverStartupProject && s != current;
+  recoverStartupProject = false;
+  if (touchOwner == Owner::Body) {
+    if (current == Screen::Mixer) mixer::touchUp();
+    if (current == Screen::Playlist) playlist::touchUp();
+    if (current == Screen::Pattern) pattern::touchUp();
+    if (current == Screen::Input) inputscreen::touchUp();
+  }
+  if (current == Screen::Pattern && s != Screen::Pattern) pattern::leave();
+  if (current == Screen::Input && s != Screen::Input) inputscreen::leave();
+  if (current == Screen::Controls && s != Screen::Controls) controlsscreen::leave();
+  if (s == Screen::Menu) {
+    // Being on the menu means no project is open: stop playback and close it.
+    shownProject[0] = '\0';
+    if (closeProject && g.linked) teensylink::sendCloseProject();
+  }
+  if (fade) bteCopy(kVisible, uitransition::kOldFrame, 0, 0, kW, kH);
+  // Snapshot copy has a bounded vendor wait. Do not draw if that wait timed out.
+  if (uitransition::hardwareBusy()) return;
+  current = s;
+  beginStagedDraw();  // build the whole screen off-screen, then show it in one step (no black flash)
+  setCanvas(kVisible);
+  fillRect(0, 0, kW - 1, kH - 1, rgb565(theme::palette().background));
+  drawHeaderFor(s);
+  switch (s) {
+    case Screen::Themes:
+      themescreen::enter();
+      break;
+    case Screen::Menu:
+      menu::enter();
+      break;
+    case Screen::NewProject:
+      keyboard::enter();
+      break;
+    case Screen::LoadProject:
+      loadscreen::enter();
+      break;
+    case Screen::Mixer:
+      mixer::enter();
+      drawTransport();
+      break;
+    case Screen::Playlist:
+      drawTransport();  // first, so the SNIP button drawn by playlist::enter() stays on top
+      playlist::enter();
+      break;
+    case Screen::Pattern:
+      drawTransport(true);
+      pattern::enter();
+      break;
+    case Screen::Input:
+      inputscreen::enter();
+      break;
+    case Screen::FilePicker:
+      picker::enter(picker::track());
+      break;
+    case Screen::Wifi:
+      wifiscreen::enter();
+      break;
+    case Screen::Midi:
+      midiscreen::enter();
+      break;
+    case Screen::Bluetooth:
+      btscreen::enter();
+      break;
+    case Screen::Controls:
+      controlsscreen::enter();
+      break;
+  }
+  if (fade) {
+    endStagedDraw();
+    transitionPending = true;
+    // A failed start (e.g. controller still busy) goes through the idle-checked
+    // recovery path; it must not immediately race a fallback BTE copy.
+    transitionStarted = uitransition::begin(kStaging, kVisible, mirror::blend);
+    suppressTouchUntilRelease = true;
+    touching = false;
+    touchOwner = Owner::None;
+    lastTouchMs = millis();
+  } else {
+    presentStagedDraw();
+  }
+  screenReady = true;
+  wasPlayingDrawn = g.playing;
+  wasPreviewDrawn = drumTransportState();
+}
+
+void startProject(const char* name, bool isNew) {
+  strncpy(shownProject, name, sizeof(shownProject) - 1);
+  shownProject[sizeof(shownProject) - 1] = '\0';
+  if (isNew) {
+    teensylink::sendNewProject(name);
+  } else {
+    teensylink::sendOpenProject(name);
+  }
+  goTo(Screen::Mixer);
+}
+
+bool nameTaken(const char* name) {
+  const teensylink::ProjectInfo& p = teensylink::state().project;
+  for (int i = 0; i < p.listCount; ++i) {
+    if (strcasecmp(p.list[i], name) == 0) return true;
+  }
+  return false;
+}
+
+void onTouchDown(int x, int y) {
+  HeaderHit hh = headerHit(x, y);
+  if (hh == HeaderHit::Volume) {
+    touchOwner = Owner::Volume;
+    setVolumeFromX(x, false);
+    return;
+  }
+  if (hh != HeaderHit::None) {
+    touchOwner = Owner::Header;
+    switch (hh) {
+      case HeaderHit::TabMixer:
+        if (current != Screen::Mixer) goTo(Screen::Mixer);
+        break;
+      case HeaderHit::TabPlaylist:
+        if (current != Screen::Playlist) goTo(Screen::Playlist);
+        break;
+      case HeaderHit::TabPattern:
+        if (current != Screen::Pattern) goTo(Screen::Pattern);
+        break;
+      case HeaderHit::TabInput:
+        if (current != Screen::Input) goTo(Screen::Input);
+        break;
+      case HeaderHit::Menu:
+        goTo(Screen::Menu);
+        break;
+      case HeaderHit::Back:
+        goTo(pickerReturn);
+        break;
+      default:
+        break;
+    }
+    return;
+  }
+  if (current == Screen::Playlist && playlist::stripButtonDown(x, y)) {
+    touchOwner = Owner::Body;  // later moves/release drive the snip cut preview
+    return;
+  }
+  if (inProject(current) && inTransportArea(x, y)) {
+    touchOwner = Owner::Transport;
+    TransportHit th = transportHit(x, y);
+    if (th == TransportHit::Slider) {
+      touchOwner = Owner::Slider;
+      sliderSeek(x, false);
+    } else if (th == TransportHit::PlayPattern) {
+      // Loop the current pattern by itself. The Teensy only previews while the song is paused,
+      // so pause the song first if it is playing (the commands are handled in order).
+      if (g.linked) {
+        bool on = teensylink::state().drums.previewOn;
+        if (!on && g.playing) teensylink::sendTogglePlay();
+        teensylink::setPreview(!on, g.pattern);
+        drawTransport(true);
+      }
+    } else if (th == TransportHit::Record) {
+      // A one-bar count-in, then records into the looping pattern. Pressing again stops recording
+      // (or cancels the count-in); the loop keeps playing until PATTERN / STOP.
+      if (g.linked) {
+        const teensylink::Drums& d = teensylink::state().drums;
+        if (d.recording || d.countIn) {
+          teensylink::setPreview(true, g.pattern, false);
+        } else {
+          if (g.playing) teensylink::sendTogglePlay();  // the loop only runs while the song is paused
+          teensylink::setPreview(true, g.pattern, true);
+        }
+        drawTransport(true);
+      }
+    } else if (th == TransportHit::ClickToggle) {
+      if (g.linked) {
+        teensylink::setClickOn(!teensylink::state().drums.clickOn);
+        drawTransport(true);
+      }
+    } else if (th == TransportHit::PadMode) {
+      if (g.linked) {
+        teensylink::setPadMode(teensylink::state().drums.padMode == 1 ? 0 : 1);
+        drawTransport(true);
+      }
+    } else if (th == TransportHit::Play) {
+      if (g.linked) {
+        teensylink::sendTogglePlay();
+      } else {
+        g.playing = !g.playing;
+        lastDemoMs = millis();
+      }
+    } else if (th == TransportHit::Rewind) {
+      if (g.linked) {
+        teensylink::sendRewind();
+      } else {
+        g.posMs = 0;
+      }
+    }
+    return;
+  }
+  touchOwner = Owner::Body;
+  switch (current) {
+    case Screen::Themes:
+      if (themescreen::touchDown(x, y)) {
+        playlist::init();
+        goTo(Screen::Themes, false);
+      }
+      break;
+    case Screen::Menu: {
+      Screen next = menu::touchDown(x, y);
+      if (next != Screen::Menu) goTo(next);
+      break;
+    }
+    case Screen::NewProject: {
+      keyboard::Action a = keyboard::touchDown(x, y);
+      if (a == keyboard::Action::Cancel) {
+        goTo(Screen::Menu);
+      } else if (a == keyboard::Action::Create) {
+        const char* name = keyboard::name();
+        if (name[0] == '\0') {
+          keyboard::showMessage("ENTER A NAME FIRST");
+        } else if (!g.linked) {
+          keyboard::showMessage("TEENSY NOT CONNECTED");
+        } else if (nameTaken(name)) {
+          keyboard::showMessage("A PROJECT WITH THAT NAME ALREADY EXISTS");
+        } else {
+          startProject(name, true);
+        }
+      }
+      break;
+    }
+    case Screen::LoadProject: {
+      const char* name = loadscreen::touchDown(x, y);
+      if (name != nullptr) startProject(name, false);
+      break;
+    }
+    case Screen::Mixer: {
+      int t = mixer::touchDown(x, y);
+      if (t >= 0) openPicker(t);
+      break;
+    }
+    case Screen::Playlist: {
+      int t = playlist::touchDown(x, y);
+      if (t >= 0) openPicker(t);
+      break;
+    }
+    case Screen::Pattern:
+      pattern::touchDown(x, y);
+      break;
+    case Screen::Input:
+      inputscreen::touchDown(x, y);
+      break;
+    case Screen::Wifi:
+      wifiscreen::touchDown(x, y);
+      break;
+    case Screen::Midi:
+      midiscreen::touchDown(x, y);
+      break;
+    case Screen::Bluetooth:
+      btscreen::touchDown(x, y);
+      break;
+    case Screen::Controls:
+      controlsscreen::touchDown(x, y);
+      break;
+    case Screen::FilePicker: {
+      picker::Action a = picker::touchDown(x, y);
+      if (a == picker::Action::Picked) {
+        teensylink::sendAssignTrack(picker::track(), picker::chosen());
+        goTo(pickerReturn);
+      } else if (a == picker::Action::Remove) {
+        teensylink::sendClearTrack(picker::track());
+        goTo(pickerReturn);
+      }
+      break;
+    }
+  }
+}
+
+void onTouchMove(int x, int y) {
+  if (touchOwner == Owner::Volume) {
+    setVolumeFromX(x, false);
+    return;
+  }
+  if (touchOwner == Owner::Slider) {
+    sliderSeek(x, false);
+    return;
+  }
+  if (touchOwner != Owner::Body) return;
+  if (current == Screen::Mixer) mixer::touchMove(x, y);
+  if (current == Screen::Playlist) playlist::touchMove(x, y);
+  if (current == Screen::Pattern) pattern::touchMove(x, y);
+  if (current == Screen::Input) inputscreen::touchMove(x, y);
+}
+
+void onTouchUp() {
+  if (touchOwner == Owner::Volume) setVolumeFromX(lastTouchX, true);
+  if (touchOwner == Owner::Slider) sliderSeek(lastTouchX, true);
+  if (touchOwner == Owner::Body) {
+    if (current == Screen::Mixer) mixer::touchUp();
+    if (current == Screen::Playlist) playlist::touchUp();
+    if (current == Screen::Pattern) pattern::touchUp();
+    if (current == Screen::Input) inputscreen::touchUp();
+  }
+  touchOwner = Owner::None;
+}
+
+void updateLink(uint32_t now) {
+  teensylink::poll();
+  bool nowLinked = teensylink::connected();
+  if (nowLinked != g.linked) {
+    g.linked = nowLinked;
+    dbg::printf("link %s\n", g.linked ? "UP" : "DOWN");
+    drawLinkTag();
+    if (g.linked) {
+      teensylink::sendHello();
+      // Reconnection is read-only: the Teensy owns the ongoing session.
+      // Only an explicit navigation to Menu may close the project.
+      if (current == Screen::LoadProject) loadscreen::enter();
+      if (current == Screen::Input) teensylink::sendInputMeters(true);  // the Teensy forgot after a reset
+      if (current == Screen::Controls) teensylink::sendControlsStream(true);
+    } else if (current == Screen::LoadProject) {
+      loadscreen::refresh();
+    }
+  }
+  if (g.linked) {
+    const teensylink::State& st = teensylink::state();
+    g.playing = st.playing;
+    if (now >= g.posHoldUntil) g.posMs = st.posMs;
+    if (teensylink::takeVolumeChanged() && now >= g.volHoldUntil) {
+      g.volPermille = st.volumePermille;
+      drawVolume();
+    }
+    g.songMs = st.songMs > 0 ? st.songMs : 8000;
+  } else if (g.playing && now - lastDemoMs >= 40) {
+    g.posMs += now - lastDemoMs;
+    lastDemoMs = now;
+    if (g.posMs >= g.songMs) g.posMs = 0;
+  }
+
+  if (teensylink::takeProjectChanged()) {
+    const teensylink::ProjectInfo& p = teensylink::state().project;
+    if (recoverStartupProject && p.open && current == Screen::Menu) {
+      strncpy(shownProject, p.name, sizeof(shownProject) - 1);
+      shownProject[sizeof(shownProject) - 1] = '\0';
+      goTo(Screen::Playlist, false);
+      dbg::println("Display recovered existing Teensy project");
+      if (transitionPending) return;
+    }
+    if (p.open && (inProject(current) || current == Screen::Input) && strcmp(shownProject, p.name) != 0) {
+      strncpy(shownProject, p.name, sizeof(shownProject) - 1);
+      drawHeaderFor(current);
+    }
+  }
+  if (teensylink::takeListChanged() && current == Screen::LoadProject) loadscreen::refresh();
+  if (teensylink::takeFilesChanged() && current == Screen::FilePicker) picker::refresh();
+}
+
+// A transition owns all display surfaces until its last BTE operation completes.
+// Polling the link here preserves every change flag for normal updateLink later.
+bool serviceTransition() {
+  if (!transitionPending) return false;
+  teensylink::poll();
+  TouchPoint held[5];
+  if (touchRead(held, 5) > 0) lastTouchMs = millis();
+  const auto result = transitionStarted ? uitransition::update() : uitransition::State::Failed;
+  if (result == uitransition::State::Complete) {
+    transitionPending = false;
+  } else if (result != uitransition::State::Running && !uitransition::hardwareBusy()) {
+    bteCopy(kStaging, kVisible, 0, 0, kW, kH);
+    if (!uitransition::hardwareBusy()) transitionPending = false;
+  }
+  mirror::frame(static_cast<int>(current));
+  return true; // Even completion must not draw more in this same update.
+}
+
+}  // namespace
+
+void begin() {
+  theme::begin();
+  uint32_t t0 = millis();
+  playlist::init();
+  dbg::printf("ui art built in %lu ms\n", (unsigned long)(millis() - t0));
+  // A display reboot must not stop or close the audio engine's project.
+  goTo(Screen::Menu, false);
+  recoverStartupProject = true;
+}
+
+void update() {
+  if (serviceTransition()) return;
+  uint32_t now = millis();
+  updateLink(now);
+  if (serviceTransition()) return;
+
+  static uint32_t lastStatsMs = 0;
+  if (now - lastStatsMs >= 5000) {
+    lastStatsMs = now;
+    uint32_t lines = 0, maxGap = 0;
+    teensylink::takeLinkStats(lines, maxGap);
+    dbg::printf("linkstats: %lu state lines / 5s, max gap %lu ms, uptime %lu s\n",
+                  (unsigned long)lines, (unsigned long)maxGap, (unsigned long)(now / 1000));
+  }
+
+  TouchPoint pts[5];
+  int n = touchRead(pts, 5);
+  if (suppressTouchUntilRelease) {
+    if (n > 0) lastTouchMs = now;
+    else if (now - lastTouchMs > 120) suppressTouchUntilRelease = false;
+    n = 0; // A held navigation finger must never activate the new screen.
+  }
+  if (current == Screen::Pattern && !suppressTouchUntilRelease) {
+    int xs[5], ys[5];
+    for (int i = 0; i < n && i < 5; ++i) {
+      xs[i] = (kPanelH - 1) - (int)pts[i].y;  // panel (px, py) to landscape, as for the first finger
+      ys[i] = (int)pts[i].x;
+    }
+    pattern::touchPoints(xs, ys, n < 5 ? n : 5);
+  }
+  if (n > 0) {
+    // Panel (px, py) to landscape: lx = 1279 - py, ly = px.
+    int lx = (kPanelH - 1) - (int)pts[0].y;
+    int ly = (int)pts[0].x;
+    lastTouchMs = now;
+    lastTouchX = lx;
+    if (!touching) {
+      touching = true;
+      onTouchDown(lx, ly);
+    } else {
+      onTouchMove(lx, ly);
+    }
+  } else if (touching && now - lastTouchMs > 120) {
+    touching = false;
+    onTouchUp();
+  }
+
+  if (serviceTransition()) return;
+
+  playlist::update(current == Screen::Playlist);
+  mixer::update(current == Screen::Mixer);
+  pattern::update(current == Screen::Pattern);
+  inputscreen::update(current == Screen::Input);
+  if (current == Screen::Wifi) wifiscreen::update();
+  if (current == Screen::Midi) midiscreen::update();
+  if (current == Screen::Bluetooth) btscreen::update();
+  controlsscreen::update(current == Screen::Controls);
+
+  if (inProject(current)) {
+    int previewNow = drumTransportState();
+    bool splitPlay = current == Screen::Pattern;
+    if (g.playing != wasPlayingDrawn || (splitPlay && previewNow != wasPreviewDrawn)) {
+      wasPlayingDrawn = g.playing;
+      wasPreviewDrawn = previewNow;
+      drawTransport(splitPlay);
+      if (current == Screen::Playlist) playlist::drawActions();
+    }
+    drawSlider();
+    if (now - lastClockMs >= 100) {
+      lastClockMs = now;
+      drawClock();
+    }
+  }
+  mirror::frame(static_cast<int>(current));
+}
+
+bool mirrorSnapshot(uint32_t requestId) {
+  // Called after update(): touch-up handlers have finished any edit transaction.
+  if (!screenReady || transitionPending || suppressTouchUntilRelease || touching ||
+      millis()-lastTouchMs < 150 || uitransition::hardwareBusy()) return false;
+  if (!mirror::snapshotBegin(requestId)) return false;
+  // Initialize every hidden layer before replaying dependencies. Never blank the LCD.
+  const unsigned long layers[] = {kBright,kDim,kComposed,kStaging,uitransition::kOldFrame};
+  for (unsigned long layer : layers) {
+    setCanvas(layer);
+    fillRect(0,0,kW-1,kH-1,rgb565(theme::palette().background));
+  }
+  playlist::init();  // Rebuild bright/dim wave art and composed lanes, no model mutations.
+  beginStagedDraw();
+  setCanvas(kVisible);
+  fillRect(0,0,kW-1,kH-1,rgb565(theme::palette().background));
+  drawHeaderFor(current);
+  switch(current) {
+    case Screen::Menu: menu::redraw(); break;
+    case Screen::Themes: themescreen::redraw(); break;
+    case Screen::NewProject: keyboard::redraw(); break;
+    case Screen::LoadProject: loadscreen::redraw(); break;
+    case Screen::Mixer: mixer::redraw(); drawTransport(); break;
+    case Screen::Playlist: drawTransport(); playlist::redraw(); break;
+    case Screen::Pattern: drawTransport(true); pattern::redraw(); break;
+    case Screen::Input: inputscreen::redraw(); break;
+    case Screen::FilePicker: picker::redraw(); break;
+    case Screen::Wifi: wifiscreen::redraw(); break;
+    case Screen::Midi: midiscreen::redraw(); break;
+    case Screen::Bluetooth: btscreen::redraw(); break;
+    case Screen::Controls: controlsscreen::redraw(); break;
+  }
+  presentStagedDraw();
+  mirror::snapshotEnd(requestId,static_cast<int>(current));
+  return true;
+}
+
+}  // namespace ui

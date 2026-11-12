@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+<title id="title">Proposed touch effects editor</title><desc id="desc">Concept only. Three effect slots, selected Delay, large Edit, Move and Replace actions, chain effect amount and mute. Existing transport retained.</desc>
+<style>text{font-family:Arial,sans-serif;fill:#23272b} .title{font-size:34px;font-weight:600}.label{font-size:28px}.small{font-size:23px;fill:#65665f}.button{fill:#e5e1d8}.selected{fill:#247a73}.white{fill:#fff}</style>
+<rect width="1280" height="720" fill="#f3f0e9"/>
+<rect x="16" y="0" width="174" height="104" rx="16" class="button"/><text x="103" y="63" text-anchor="middle" class="label">Back</text>
+<text x="230" y="61" class="title">Vocals · Effects</text><text x="806" y="59" class="small">Design concept</text>
+<rect x="1090" y="0" width="174" height="104" rx="16" class="button"/><text x="1177" y="63" text-anchor="middle" class="label">Done</text>
+<text x="32" y="147" class="small">Tap a card to edit. Effects flow from left to right.</text>
+<rect x="32" y="174" width="376" height="144" rx="18" class="selected"/><text x="56" y="214" class="small white">1 · Selected</text><text x="56" y="264" class="title white">Delay</text>
+<text x="422" y="253" class="title">›</text>
+<rect x="452" y="174" width="376" height="144" rx="18" class="button"/><text x="476" y="214" class="small">2</text><text x="476" y="264" class="title">Chorus</text>
+<text x="842" y="253" class="title">›</text>
+<rect x="872" y="174" width="376" height="144" rx="18" fill="none" stroke="#b5b4a9" stroke-width="3" stroke-dasharray="8 6"/><text x="1060" y="258" text-anchor="middle" class="label">+ Add effect</text>
+<rect x="32" y="342" width="376" height="104" rx="16" class="button"/><text x="220" y="405" text-anchor="middle" class="label">Edit Delay</text>
+<rect x="452" y="342" width="376" height="104" rx="16" class="button"/><text x="640" y="405" text-anchor="middle" class="label">Move Delay</text>
+<rect x="872" y="342" width="376" height="104" rx="16" class="button"/><text x="1060" y="405" text-anchor="middle" class="label">Replace Delay</text>
+<rect x="32" y="476" width="796" height="104" rx="16" class="button"/><text x="56" y="513" class="label">Effect amount</text><text x="794" y="513" text-anchor="end" class="label">35%</text>
+<rect x="56" y="545" width="738" height="7" rx="3" fill="#b5b4a9"/><rect x="56" y="545" width="258" height="7" rx="3" class="selected"/><rect x="304" y="530" width="20" height="36" rx="8" class="selected"/>
+<rect x="872" y="476" width="376" height="104" rx="16" class="button"/><text x="1060" y="539" text-anchor="middle" class="label">Mute effects</text>
+<rect x="0" y="618" width="1280" height="102" fill="#e5e1d8"/><rect x="16" y="618" width="608" height="102" rx="16" class="selected"/><text x="320" y="680" text-anchor="middle" class="label white">Play</text><text x="952" y="680" text-anchor="middle" class="label">Rewind</text>
+</svg>

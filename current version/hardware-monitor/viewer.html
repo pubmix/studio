@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dub-Box · Live screen</title>
+<style>
+:root{color-scheme:dark;font:15px system-ui,sans-serif;background:#0c1016;color:#e6edf6}body{margin:0;padding:28px;max-width:1440px;margin:auto}header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}h1{font-size:24px;letter-spacing:.08em;margin:0}small{color:#92a1b8}.pill{padding:8px 14px;border-radius:24px;background:#263242;color:#c4cdd9}.live{background:#153c30;color:#78e2b0}.bad{background:#492b24;color:#ffb99f}.screen{position:relative;aspect-ratio:16/9;border:1px solid #2a3545;border-radius:10px;overflow:hidden;background:#000}.screen img{display:block;width:100%;height:100%;object-fit:contain}.notice{position:absolute;bottom:12px;left:12px;right:12px;padding:10px 14px;border-radius:8px;background:#30261fed;color:#ffdaac;font-size:15px;pointer-events:none}.screen img:not([src]){visibility:hidden}.hidden{display:none}footer{display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap;margin-top:18px;color:#99abc3}.details{margin-top:22px;border-top:1px solid #263242;padding-top:16px;font-size:13px;color:#8293aa}button{background:#1e2a3b;color:#dfeaff;border:1px solid #40516a;border-radius:6px;padding:7px 12px;cursor:pointer}#touch{font-variant-numeric:tabular-nums}a{color:#9ac4ff}
+</style>
+<header><div><h1>DUB-BOX</h1><small>Live screen · USB firmware mirror</small></div><span class="pill" id="state">Connecting</span></header>
+<div class="screen" id="screen"><img id="frame" alt="Live screen reconstructed from the ESP32 drawing stream"><div class="notice" id="notice">Waiting for the display stream…</div></div>
+<footer><span id="page">Screen: —</span><span id="touch">Touch: —</span><button id="full">Full screen</button></footer>
+<div class="details">This view follows the device’s drawing commands at its native 1280 × 720 resolution. It is a view-only mirror, not a camera image. Use the physical touchscreen to navigate.<br><span id="health"></span></div>
+<script>
+const $=id=>document.getElementById(id);
+let lastFrameKey='',hasPicture=false,loading=false,lastLive=false;
+function notice(message){$('notice').textContent=message;$('notice').className='notice '+(lastLive&&hasPicture?'hidden':'');}
+async function loadFrame(key){
+ if(loading||key===lastFrameKey)return;
+ loading=true;let objectURL;
+ try{
+  const response=await fetch('/frame.png?t='+Date.now(),{cache:'no-store',signal:AbortSignal.timeout(3000)});
+  if(!response.ok)throw Error('No complete frame');
+  const blob=await response.blob();objectURL=URL.createObjectURL(blob);
+  const candidate=new Image();candidate.src=objectURL;await candidate.decode();
+  const previous=$('frame').src;
+  $('frame').src=objectURL;objectURL=null;hasPicture=true;lastFrameKey=key;
+  if(previous.startsWith('blob:'))URL.revokeObjectURL(previous);
+  notice(lastLive?'':'Reconnecting — showing the last complete picture.');
+ }catch(e){notice(hasPicture?'Reconnecting — showing the last complete picture.':'Waiting for the first complete picture…');}
+ finally{if(objectURL)URL.revokeObjectURL(objectURL);loading=false;}
+}
+async function update(){
+ try{
+  const r=await fetch('/status',{cache:'no-store',signal:AbortSignal.timeout(2000)});
+  if(!r.ok)throw Error('Recorder unavailable');
+  const s=await r.json(),m=s.mirror;lastLive=!!m.live;
+  $('state').textContent=lastLive?'LIVE':hasPicture?'RECONNECTING · LAST PICTURE':'CONNECTING';
+  $('state').className='pill '+(lastLive?'live':'bad');
+  notice(hasPicture?'Reconnecting — showing the last complete picture.':'Waiting for the first complete picture…');
+  $('page').textContent='Screen: '+m.screen;
+  if(m.touch)$('touch').textContent=`Touch: ${m.touch.phase} · ${m.touch.x}, ${m.touch.y}`;
+  $('health').textContent=`${(m.commands||0).toLocaleString()} verified drawing commands · ${m.dropped||0} dropped · Teensy ${s.boards.teensy?.connected?'connected':'disconnected'}`;
+  const key=String(m.last_complete_timestamp??s.boards.esp32?.connected_at??'')+':'+m.frames;
+  if(m.has_frame||m.valid||!hasPicture)await loadFrame(key);
+ }catch(e){lastLive=false;$('state').textContent='RECONNECTING';$('state').className='pill bad';notice(hasPicture?'Recorder reconnecting — showing the last complete picture.':'Waiting for the recorder…');}
+ setTimeout(update,333);
+}
+$('full').onclick=()=>$('screen').requestFullscreen();update();
+</script></html>

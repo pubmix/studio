@@ -1,0 +1,150 @@
+{
+  "repository": "https://github.com/sgossner/VCSL",
+  "commit": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+  "license": "CC0-1.0",
+  "samples": [
+    {
+      "name": "piano_c1",
+      "kind": "piano",
+      "root_midi": 36,
+      "max_seconds": 2.4,
+      "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_C1_v3_rr1_Player.wav",
+      "source_bytes": 6370124,
+      "git_blob_sha1": "70beefba61b67f83a78d3850abb0c8279a549a40",
+      "url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Zithers/Grand%20Piano%2C%20Kawai/Sustains/GPiano_sus_C1_v3_rr1_Player.wav",
+      "sha256": "1b9d363216bf0aec37aae00a4ad1cf69297d0f341eca397db4df83f6e58f15db"
+    },
+    {
+      "name": "piano_c2",
+      "kind": "piano",
+      "root_midi": 48,
+      "max_seconds": 2.4,
+      "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_C2_v3_rr1_Player.wav",
+      "source_bytes": 5398316,
+      "git_blob_sha1": "0ed4702b3c8c668a58acc27e2a87db7730032fcc",
+      "url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Zithers/Grand%20Piano%2C%20Kawai/Sustains/GPiano_sus_C2_v3_rr1_Player.wav",
+      "sha256": "5d22de6d71e3accb05e2dea5c5208856ac2361c45e26079bffac7b1a98e9360d"
+    },
+    {
+      "name": "piano_c3",
+      "kind": "piano",
+      "root_midi": 60,
+      "max_seconds": 2.4,
+      "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_C3_v3_rr1_Player.wav",
+      "source_bytes": 3579752,
+      "git_blob_sha1": "6235c862be7bd3bb1dce47822ef0bcdfb3a299b5",
+      "url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Zithers/Grand%20Piano%2C%20Kawai/Sustains/GPiano_sus_C3_v3_rr1_Player.wav",
+      "sha256": "98496ea0d77ba1a753bc390b499267e9dc0b9015f9f928ab6f26bff39daef9a4"
+    },
+    {
+      "name": "piano_c4",
+      "kind": "piano",
+      "root_midi": 72,
+      "max_seconds": 2.4,
+      "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_C4_v3_rr1_Player.wav",
+      "source_bytes": 2600852,
+      "git_blob_sha1": "a8a644c488609ba0dbccc1eef9c1548c97fba4a3",
+      "url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Zithers/Grand%20Piano%2C%20Kawai/Sustains/GPiano_sus_C4_v3_rr1_Player.wav",
+      "sha256": "eb5faca3331cd32f15f6a2302dba69b073a2ca600fed606bf456e60260d06e5b"
+    },
+    {
+      "name": "piano_c5",
+      "kind": "piano",
+      "root_midi": 84,
+      "max_seconds": 2.4,
+      "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_C5_v3_rr1_Player.wav",
+      "source_bytes": 1422884,
+      "git_blob_sha1": "b2c2002492e4bf9e2d58f6107a38b4ee1905b902",
+      "url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Chordophones/Zithers/Grand%20Piano%2C%20Kawai/Sustains/GPiano_sus_C5_v3_rr1_Player.wav",
+      "sha256": "3cbb54ef6b504b2de8bd18c553001b974d5c5d3898e2a8c5a42d2e15cfcf9853"
+    },
+    {
+      "name": "kick",
+      "kind": "drum",
+      "root_midi": 36,
+      "max_seconds": 0.75,
+      "path": "Membranophones/Struck Membranophones/Bass Drum 1/BDrumNew_hit_v5_rr1_Sum.wav",
+      "source_bytes": 588092,
+      "git_blob_sha1": "6a3b5a0fdc56be45b6188c026b2221c31ba8ecb4",
+      "url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Membranophones/Struck%20Membranophones/Bass%20Drum%201/BDrumNew_hit_v5_rr1_Sum.wav",
+      "sha256": "642aaf3375eaff1307973f7de3ccbf74d18e71fb3cf9412e021b08fc3bf1981c"
+    },
+    {
+      "name": "snare",
+      "kind": "drum",
+      "root_midi": 38,
+      "max_seconds": 0.7,
+      "path": "Membranophones/Struck Membranophones/Snare Drum, Modern 1/Snare2_HitSN_v7_rr1_Mid.wav",
+      "source_bytes": 271480,
+      "git_blob_sha1": "9ee81272009a67d695836c1bd701c4e876fe1102",
+      "url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Membranophones/Struck%20Membranophones/Snare%20Drum%2C%20Modern%201/Snare2_HitSN_v7_rr1_Mid.wav",
+      "sha256": "e63d9ebb2d1f85456d7554448b52330031051bc45db36f5fe08ef5f5149421e6"
+    },
+    {
+      "name": "closed_hat",
+      "kind": "drum",
+      "root_midi": 42,
+      "max_seconds": 0.25,
+      "path": "Idiophones/Struck Idiophones/Hi-Hat Cymbal/HiHat_HitC_v3_rr1_Mid.wav",
+      "source_bytes": 218792,
+      "git_blob_sha1": "01ede5c05d228875c65e1542972f077df5ab2e2a",
+      "url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Idiophones/Struck%20Idiophones/Hi-Hat%20Cymbal/HiHat_HitC_v3_rr1_Mid.wav",
+      "sha256": "b65ca06ea4f8b5209fc8d98912094be1212911f21e01bd949cc9960db049d37c"
+    },
+    {
+      "name": "open_hat",
+      "kind": "drum",
+      "root_midi": 46,
+      "max_seconds": 1.25,
+      "path": "Idiophones/Struck Idiophones/Hi-Hat Cymbal/HiHat_HitO_rr1_Mid.wav",
+      "source_bytes": 1026612,
+      "git_blob_sha1": "e55c1c8af186f34aee593b05f621aed9b11915b9",
+      "url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Idiophones/Struck%20Idiophones/Hi-Hat%20Cymbal/HiHat_HitO_rr1_Mid.wav",
+      "sha256": "fa492ec14cc6924b43ad5fcf9e9a0f406d926998835bde2eb5847cd15ad25be7"
+    },
+    {
+      "name": "low_tom",
+      "kind": "drum",
+      "root_midi": 45,
+      "max_seconds": 0.9,
+      "path": "Membranophones/Struck Membranophones/Tom 2/Stick/TomL_HitS_v3_rr1_Mid.wav",
+      "source_bytes": 508520,
+      "git_blob_sha1": "5f088286ca22b0f736e3d475bb68609bb90b2fcd",
+      "url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Membranophones/Struck%20Membranophones/Tom%202/Stick/TomL_HitS_v3_rr1_Mid.wav",
+      "sha256": "bdc312f2f4c799cb43319a7aa0e664bf6194c6f8b14151051b375968df55eab4"
+    },
+    {
+      "name": "clap",
+      "kind": "drum",
+      "root_midi": 39,
+      "max_seconds": 0.35,
+      "path": "Idiophones/Struck Idiophones/Claps/Clap_rr1.wav",
+      "source_bytes": 141974,
+      "git_blob_sha1": "e033dc2c58e13d3edcb7a61bd6f1bc90310562ae",
+      "url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Idiophones/Struck%20Idiophones/Claps/Clap_rr1.wav",
+      "sha256": "4c9f3fe4a34733b9be6ed9ce5e5aad48b19c1029ae9c6dd1b96294a847539e3f"
+    },
+    {
+      "name": "rim",
+      "kind": "drum",
+      "root_midi": 37,
+      "max_seconds": 0.4,
+      "path": "Membranophones/Struck Membranophones/Snare Drum, Modern 3/Snare4_rimshot_v2_rr1_Mid.wav",
+      "source_bytes": 323000,
+      "git_blob_sha1": "77260a1752be8839ef23339837ebf3b3d1ae4e7a",
+      "url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Membranophones/Struck%20Membranophones/Snare%20Drum%2C%20Modern%203/Snare4_rimshot_v2_rr1_Mid.wav",
+      "sha256": "a7444dd2945019a7dc08e574b7270ace4b34274b70f7f1622d719bfd1a7e9b4b"
+    },
+    {
+      "name": "perc",
+      "kind": "drum",
+      "root_midi": 54,
+      "max_seconds": 0.6,
+      "path": "Idiophones/Struck Idiophones/Tambourine 1/Tamb1_Hit_v2_rr1_Mid.wav",
+      "source_bytes": 293256,
+      "git_blob_sha1": "aad955871ad59069036194cf73591a6930a91621",
+      "url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/Idiophones/Struck%20Idiophones/Tambourine%201/Tamb1_Hit_v2_rr1_Mid.wav",
+      "sha256": "885ebf1d70f8e888f576682e4e4112b92b69649162f392c83b3379c91a09cf41"
+    }
+  ]
+}
