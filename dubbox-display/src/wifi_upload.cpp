@@ -7,7 +7,9 @@
 #include <WiFi.h>
 #include <string.h>
 
+#include "bt_audio.h"
 #include "teensy_link.h"
+#include "debug_log.h"
 #include "upload_page.h"
 
 namespace wifiup {
@@ -333,7 +335,8 @@ void begin() {
   g_saved = g_ssid[0] != '\0';
   WiFi.persistent(false);
   WiFi.setHostname("dubbox");
-  if (g_saved) beginConnect();
+  // Bluetooth and WiFi do not both fit in memory: while Bluetooth is on, WiFi stays off this boot.
+  if (g_saved && !btaudio::active()) beginConnect();
 }
 
 void update() {
@@ -415,10 +418,10 @@ void update() {
   if (g_job.stage != lastStage) {
     lastStage = g_job.stage;
     if (lastStage == kDone) {
-      Serial.printf("WIFI: upload %s done (%lu bytes) in %lu ms\n", g_job.name, static_cast<unsigned long>(g_job.size),
+      dbg::printf("WIFI: upload %s done (%lu bytes) in %lu ms\n", g_job.name, static_cast<unsigned long>(g_job.size),
                     static_cast<unsigned long>(millis() - g_dbgStartMs));
     } else if (lastStage == kFailed) {
-      Serial.printf("WIFI: upload failed: %s\n", g_job.error);
+      dbg::printf("WIFI: upload failed: %s\n", g_job.error);
     }
   }
 }
@@ -430,6 +433,7 @@ const char* failReason() { return g_fail; }
 bool hasSaved() { return g_saved; }
 
 void connect(const char* ssid, const char* password) {
+  if (btaudio::active()) return;
   strncpy(g_ssid, ssid, sizeof(g_ssid) - 1);
   g_ssid[sizeof(g_ssid) - 1] = '\0';
   strncpy(g_pass, password, sizeof(g_pass) - 1);
@@ -451,7 +455,7 @@ void forget() {
 }
 
 void startScan() {
-  if (g_scanning) return;
+  if (g_scanning || btaudio::active()) return;
   if (g_state == State::Off) WiFi.mode(WIFI_STA);
   g_scanCount = -1;
   g_scanning = true;
@@ -467,7 +471,7 @@ bool scanOpen(int i) { return g_scanOpen[i]; }
 void debugUpload(int seconds) {
   if (g_ring == nullptr) g_ring = static_cast<uint8_t*>(malloc(kRingSize));
   if (jobRunning() || g_ring == nullptr || seconds < 1 || seconds > 600) {
-    Serial.println("WIFI: test upload refused (busy, or out of memory)");
+    dbg::println("WIFI: test upload refused (busy, or out of memory)");
     return;
   }
   g_dbgTotal = 44 + static_cast<uint32_t>(seconds) * 44100 * 4;

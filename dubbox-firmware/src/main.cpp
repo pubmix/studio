@@ -9,6 +9,9 @@
 #include "project_state.h"
 #include "waveform.h"
 
+// Set by the Teensy 4.1 startup code: megabytes of PSRAM found on the underside (0 = none fitted).
+extern "C" uint8_t external_psram_size;
+
 // Dub-Box firmware. All UI lives on the ESP32 touchscreen (see esp_link.h); this side
 // runs the audio engine, projects on the SD card, background waveform/beat scans, and the
 // physical faders, encoders and buttons.
@@ -18,6 +21,7 @@ namespace {
 dubbox::AudioEngine audioEngine;
 dubbox::EspLink espLink;
 dubbox::ProjectManager projects;
+dubbox::MicRecorder micRecorder;
 dubbox::InputManager inputManager;
 
 // Fine waveform envelopes for the ESP32 display, scanned in the background from loop()
@@ -277,7 +281,7 @@ void printStatus() {
   for (int i = 0; i < dubbox::kNumTracks; ++i) playing[i] = audioEngine.isTrackPlaying(i);
   Serial.printf(
       "faders: %.2f %.2f %.2f %.2f | playing: %d%d%d%d | cpu: %.0f%% (peak %.0f%%) | mem: "
-      "%d/%d (peak %d) | loop: %lu us (max) | drums: %d bpm, %d clips, %lu hits, %d inst | peaks: %.2f %.2f %.2f %.2f\n",
+      "%d/%d (peak %d) | loop: %lu us (max) | drums: %d bpm, %d clips, %lu hits, %d inst | peaks: %.2f %.2f %.2f %.2f | mic: %.3f | in: %.3f %.3f | fx held: %d%d%d%d\n",
       inputManager.faderValue(0), inputManager.faderValue(1), inputManager.faderValue(2),
       inputManager.faderValue(3), playing[0], playing[1], playing[2], playing[3],
       audioEngine.cpuUsagePercent(), audioEngine.cpuUsagePercentMax(),
@@ -287,9 +291,14 @@ void printStatus() {
       static_cast<unsigned long>(audioEngine.drums().hitCount()),
       audioEngine.drums().instrumentCount(),
       audioEngine.trackPeakLevel(0), audioEngine.trackPeakLevel(1), audioEngine.trackPeakLevel(2),
-      audioEngine.trackPeakLevel(3));
+      audioEngine.trackPeakLevel(3), audioEngine.micPeakLevel(), audioEngine.lineInPeakLevel(0),
+      audioEngine.lineInPeakLevel(1), inputManager.fxSelectHeld(0), inputManager.fxSelectHeld(1), inputManager.fxSelectHeld(2),
+      inputManager.fxSelectHeld(3));
   audioEngine.resetCpuUsagePercentMax();
   loopMaxUs = 0;
+#ifdef DUBBOX_TEST_TONE
+  audioEngine.printSpectrum();
+#endif
 }
 
 }  // namespace
@@ -332,6 +341,9 @@ FLASHMEM void setup() {
   // No tracks are loaded at boot: a project (created or opened from the ESP32 display)
   // decides which WAV sits on which track.
   projects.begin(&audioEngine);
+  micRecorder.begin(&audioEngine, &projects);
+  espLink.setRecorder(&micRecorder);
+  espLink.setInput(&inputManager);
   {
     char existing[dubbox::kMaxProjects][dubbox::kProjectNameMax + 1];
     if (projects.listNames(existing, dubbox::kMaxProjects) == 0 && SD.exists(kTrackFiles[0])) {
@@ -358,17 +370,99 @@ FLASHMEM void setup() {
 void loop() {
   uint32_t loopStartUs = micros();
 
-  if (crashReportPending && millis() > 6000) {
+#ifdef DUBBOX_TEST_TONE
+  // Bench: type 't' in the USB serial monitor to toggle the 1 kHz test tone (off at boot).
+  // 'p' runs a pan test (left only, right only, centre, then a left-right-left sweep, about 16 s) and 'x' stops it.
+  static bool toneOn = false;
+  static bool panRunning = false;
+  static uint32_t panStartMs = 0;
+  static int panPhase = -1;
+  static uint32_t panLastPrintMs = 0;
+  while (Serial.available()) {
+    char c = Serial.read();
+    if (c == 't') {
+      toneOn = !toneOn;
+      audioEngine.setTestPan(0.0f);
+      audioEngine.setTestTone(toneOn);
+      Serial.println(toneOn ? "Test tone ON" : "Test tone OFF");
+    } else if (c == 'p') {
+      panRunning = true;
+      panStartMs = millis();
+      panPhase = -1;
+      Serial.println("PAN TEST start (1 kHz tone: LEFT only, RIGHT only, CENTRE, then a left-right-left sweep)");
+    } else if (c == 'x' && panRunning) {
+      panRunning = false;
+      audioEngine.setTestTone(false);
+      audioEngine.setTestPan(0.0f);
+      Serial.println("PAN TEST stopped");
+    }
+  }
+  if (panRunning) {
+    uint32_t t = millis() - panStartMs;
+    int phase = t < 2500 ? 0 : t < 5000 ? 1 : t < 7500 ? 2 : t < 15500 ? 3 : 4;
+    if (phase != panPhase) {
+      panPhase = phase;
+      static const char* const names[] = {"LEFT only", "RIGHT only", "CENTRE (both)", "SWEEP left -> right -> left", "done"};
+      Serial.printf("PAN TEST: %s\n", names[phase]);
+      if (phase == 0) { audioEngine.setTestPan(-1.0f); audioEngine.setTestToneLevel(0.1f); }
+      if (phase == 1) audioEngine.setTestPan(1.0f);
+      if (phase == 2) audioEngine.setTestPan(0.0f);
+      if (phase == 4) {
+        panRunning = false;
+        audioEngine.setTestTone(false);
+        audioEngine.setTestPan(0.0f);
+      }
+    }
+    if (phase == 3) {
+      float pan = -cosf(6.2831853f * (t - 7500) / 8000.0f);  // starts hard left, reaches hard right at 4 s, back at 8 s
+      audioEngine.setTestPan(pan);
+      if (millis() - panLastPrintMs >= 500) {
+        panLastPrintMs = millis();
+        Serial.printf("  pan %+.2f\n", pan);
+      }
+    }
+  }
+#endif
+
+  // Bench hook: a USB-serial line starting with '>' runs that link command as if the display had sent it
+  // (for example `>T,0,REC001.wav`), so the Teensy can be exercised from a PC without the touchscreen.
+  static char injectBuf[96];
+  static size_t injectLen = 0;
+  while (Serial.available()) {
+    const char c = static_cast<char>(Serial.read());
+    if (c == '\n' || c == '\r') {
+      injectBuf[injectLen] = '\0';
+      if (injectLen > 1 && injectBuf[0] == '>') espLink.injectLine(audioEngine, injectBuf + 1);
+      injectLen = 0;
+    } else if (injectLen < sizeof(injectBuf) - 1) {
+      injectBuf[injectLen++] = c;
+    }
+  }
+
+  // Printed once on USB serial and also appended to CRASH.TXT on the SD card (readable over MTP), so
+  // a crash is not lost when no monitor was attached. Waits until nothing else is using the card.
+  if (crashReportPending && millis() > 6000 && !audioEngine.isPlaying() && !micRecorder.recording() &&
+      !espLink.uploading()) {
     crashReportPending = false;
     Serial.println("=== CRASH REPORT from the previous run ===");
     Serial.print(CrashReport);
     Serial.println("=== end of crash report ===");
+    File crashFile = SD.open("CRASH.TXT", FILE_WRITE);
+    if (crashFile) {
+      crashFile.println("=== CRASH REPORT ===");
+      crashFile.print(CrashReport);
+      crashFile.println();
+      crashFile.close();
+    }
   }
 
   // MTP shares the SD card with audio streaming, and servicing it while tracks play locks
   // the Teensy up (audible as a buzz), so it only runs while paused and not while a
   // background scan is reading a file (which it can make fail).
-  if (!audioEngine.isPlaying() && !peakScanner.active() && !beatScanner.active() && !espLink.uploading()) MTP.loop();
+  if (!audioEngine.isPlaying() && !peakScanner.active() && !beatScanner.active() && !espLink.uploading() &&
+      !micRecorder.recording()) {
+    MTP.loop();
+  }
 
   inputManager.update();
   float faders[dubbox::kNumTracks];
@@ -379,7 +473,8 @@ void loop() {
   audioEngine.updateTrackCropGates();
   audioEngine.updateTransport();
   espLink.update(audioEngine, faders);
-  projects.update();
+  micRecorder.update(peakScanner.active() || beatScanner.active() || espLink.uploading());
+  projects.update(micRecorder.recording() || espLink.uploading() || peakScanner.active() || beatScanner.active());
   refreshScansForChangedTracks();
   runBackgroundScans();
   handleFxControls();

@@ -115,7 +115,7 @@ FLASHMEM void EspLink::sendFileList(AudioEngine& engine) {
   if (fileSendIndex_ == 0) {
     fileCount_ = engine.isPlaying() ? -1 : listWavFiles(g_fileNames);
   }
-  char line[96];
+  char line[160];
   if (fileCount_ <= 0) {
     snprintf(line, sizeof(line), "E,0,%d,", fileCount_);
   } else {
@@ -151,8 +151,50 @@ void EspLink::sendWaveChunks() {
 }
 
 FLASHMEM void EspLink::handleLine(AudioEngine& engine, const char* line) {
+  // Every command is one letter, then either the end of the line or a comma. Anything else is
+  // line noise (an ESP32 reset, or leftover bytes of an aborted binary upload chunk) and must not
+  // be able to trigger a command such as play, close project or hello by accident.
+  if (line[1] != '\0' && line[1] != ',') return;
+  // The mic recorder owns the SD card's write path while recording: ignore anything that would
+  // touch the card or the transport.
+  if (recorder_ != nullptr && recorder_->recording() && strchr("PTRNOQDSBZ", line[0]) != nullptr) return;
+  // The project commands touch the SD card, which the audio interrupt is reading while tracks play.
+  if (strchr("NOQ", line[0]) != nullptr && engine.isPlaying()) engine.pauseAll();
   switch (line[0]) {
+    case 'J':
+      if (recorder_ != nullptr && line[1] == ',') {
+        if (line[2] == '1') {
+          // J,1,<source>: 0 = internal mic (also when omitted), 1 = LINE IN L, 2 = LINE IN R.
+          const int source = line[3] == ',' ? atoi(line + 4) : 0;
+          recorder_->requestStart(source);
+        } else {
+          recorder_->requestStop();
+        }
+      }
+      break;
+    case 'F': {
+      int src = 0, tenths = 0, flags = 0;
+      if (sscanf(line, "F,%d,%d,%d", &src, &tenths, &flags) == 3 && src >= 0 &&
+          src < AudioEngine::kNumInputs) {
+        engine.setInputGainDb(src, tenths / 10.0f);
+        const bool notch = (flags & 1) != 0;
+        const bool lowCut = (flags & 2) != 0;
+        if (notch != engine.inputHumNotch(src) || lowCut != engine.inputLowCut(src)) {
+          engine.setInputFilters(src, notch, lowCut);
+        }
+      }
+      break;
+    }
+    case 'p':
+      inputMeters_ = line[1] == ',' && line[2] == '1';
+      break;
+    case '#':  // `#,1` / `#,0`: the CONTROLS TEST screen wants (or no longer wants) the raw controls
+      controlsStream_ = line[1] == ',' && line[2] == '1';
+      break;
     case 'H':
+      lastInputLine_[0] = '\0';
+      inputMeters_ = false;  // a restarted display asks again when it shows the Input screen
+      controlsStream_ = false;
       for (int t = 0; t < kNumTracks; ++t) {
         lastClipSig_[t] = 0;
         lastFxSig_[t] = 0;
@@ -191,6 +233,8 @@ FLASHMEM void EspLink::handleLine(AudioEngine& engine, const char* line) {
       if (projects_ != nullptr && sscanf(line, "T,%d,%n", &track, &consumed) >= 1 && consumed > 0 &&
           !engine.isPlaying()) {
         projects_->assignTrack(track, line + consumed);
+      } else {
+        Serial.printf("ESP: add-to-track ignored (%s): '%s'\n", engine.isPlaying() ? "playing" : "bad command", line);
       }
       break;
     }
@@ -307,6 +351,11 @@ FLASHMEM void EspLink::handleLine(AudioEngine& engine, const char* line) {
           engine.drums().padPressed(pad);
         }
       }
+      break;
+    }
+    case 'y': {  // ESP32 USB-MIDI bridge: play a drum row right now
+      int row = -1;
+      if (sscanf(line, "y,%d", &row) == 1 && row >= 0 && row < DrumMachine::kRows) engine.drums().hit(row);
       break;
     }
     case 'g': {  // an instrument's whole patch
@@ -537,7 +586,7 @@ FLASHMEM void EspLink::startUpload(AudioEngine& engine, const char* args) {
   if (sscanf(args, ",%lu,%n", &size, &consumed) < 1 || consumed <= 0) return;
   if (g_up.active) abortUpload(nullptr);
   const char* want = args + consumed;
-  if (engine.isPlaying() || engine.drums().previewing()) {
+  if (engine.isPlaying() || engine.drums().previewing() || (recorder_ != nullptr && recorder_->recording())) {
     queueReply("Q,err,busy");
     return;
   }
@@ -666,6 +715,56 @@ void EspLink::update(AudioEngine& engine, const float faders[kNumTracks]) {
 
   bool refresh = now - lastRefreshMs_ >= kRefreshMs;
   if (refresh) lastRefreshMs_ = now;
+
+  if (recorder_ != nullptr) {
+    const int recState = recorder_->state();
+    const char* err = recorder_->lastError();
+    uint32_t recSig = static_cast<uint32_t>(recState) * 31u + static_cast<uint32_t>(err[0]);
+    const bool due = recState == MicRecorder::kRecording ? now - lastRecMs_ >= 150
+                                                         : (refresh || recSig != lastRecSig_);
+    if (due) {
+      snprintf(buf, sizeof(buf), "K,%d,%lu,%d,%d,%s", recState,
+               static_cast<unsigned long>(recorder_->elapsedMs()),
+               permille(engine.recordSourcePeak(recorder_->source())), recorder_->source(),
+               err[0] != '\0' ? err : "-");
+      if (sendLine(buf)) {
+        lastRecMs_ = now;
+        lastRecSig_ = recSig;
+      }
+    }
+  }
+  {
+    // Input settings (gain + filter flags) for the display's Input screen, and live levels on request.
+    char ibuf[72];
+    int n = snprintf(ibuf, sizeof(ibuf), "X");
+    for (int s = 0; s < AudioEngine::kNumInputs; ++s) {
+      const int flags = (engine.inputHumNotch(s) ? 1 : 0) | (engine.inputLowCut(s) ? 2 : 0);
+      n += snprintf(ibuf + n, sizeof(ibuf) - n, ",%d,%d",
+                    static_cast<int>(lroundf(engine.inputGainDb(s) * 10.0f)), flags);
+    }
+    if (refresh || strcmp(ibuf, lastInputLine_) != 0) {
+      if (sendLine(ibuf)) strcpy(lastInputLine_, ibuf);
+    }
+    if (inputMeters_ && now - lastInputMeterMs_ >= 125) {
+      snprintf(ibuf, sizeof(ibuf), "Y,%d,%d,%d", permille(engine.recordSourcePeak(0)),
+               permille(engine.recordSourcePeak(1)), permille(engine.recordSourcePeak(2)));
+      if (sendLine(ibuf)) lastInputMeterMs_ = now;
+    }
+  }
+  if (controlsStream_ && input_ != nullptr && now - lastControlsMs_ >= 50) {
+    // #,<4 faders in permille>,<4 encoder detent counts>,<button mask>,<reserved, always 1>
+    // mask: bits 0-3 encoder push, bits 4-7 fx-select buttons 1-4, bits 8-11 drum pads 1-4 (1 = held).
+    char vbuf[96];
+    int mask = 0;
+    for (int i = 0; i < InputManager::kNumEncoders; ++i) mask |= input_->encoderHeld(i) ? (1 << i) : 0;
+    for (int i = 0; i < InputManager::kNumFxSelectButtons; ++i) mask |= input_->fxSelectHeld(i) ? (1 << (4 + i)) : 0;
+    for (int i = 0; i < InputManager::kNumDrumPadButtons; ++i) mask |= input_->drumPadHeld(i) ? (1 << (8 + i)) : 0;
+    snprintf(vbuf, sizeof(vbuf), "#,%d,%d,%d,%d,%ld,%ld,%ld,%ld,%d,%d", permille(faders[0]), permille(faders[1]),
+             permille(faders[2]), permille(faders[3]), static_cast<long>(input_->encoderDetents(0)),
+             static_cast<long>(input_->encoderDetents(1)), static_cast<long>(input_->encoderDetents(2)),
+             static_cast<long>(input_->encoderDetents(3)), mask, 1);
+    if (sendLine(vbuf)) lastControlsMs_ = now;
+  }
   for (int i = 0; i < kNumTracks; ++i) {
     uint32_t clipSig = 2166136261u;
     for (int k = 0; k < engine.trackClipCount(i); ++k) {
@@ -855,7 +954,7 @@ void EspLink::update(AudioEngine& engine, const float faders[kNumTracks]) {
     if (sendLine(buf)) beatsQueued_[t] = false;
   }
 
-  sendProjectList();
+  if (!engine.isPlaying()) sendProjectList();  // listing /PROJECTS must not race the streaming reads
   sendFileList(engine);
   sendWaveChunks();
 }

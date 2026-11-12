@@ -14,7 +14,7 @@ namespace dubbox {
 // level, hold+rotate = cycle effect type, tap = cycle the effect's
 // primary parameter — see main.cpp's handleFxControls()); each fx-select
 // button toggles that track's effect on/off; the drum pads play the
-// drum sounds routed to them. Transport + power buttons will come via an MCP23017 expander.
+// drum sounds routed to them.
 class InputManager {
  public:
   static constexpr int kNumEncoders = 4;
@@ -49,6 +49,13 @@ class InputManager {
   // True for exactly one update() cycle when the given drum pad is let go.
   bool drumPadReleased(int index) const;
 
+  // Raw state for the display's CONTROLS TEST screen (nothing here consumes or resets anything).
+  // Cumulative detents turned since boot (positive = clockwise); partial counts round toward zero.
+  int32_t encoderDetents(int encoderIndex);
+  // True for as long as the button is physically held (level, debounced).
+  bool fxSelectHeld(int index) const;
+  bool drumPadHeld(int index) const;
+
  private:
   float faderSmoothed_[kNumTracks] = {0};
 
@@ -60,6 +67,8 @@ class InputManager {
   int32_t encoderLastRaw_[kNumEncoders] = {0};
   Bounce encoderButtons_[kNumEncoders];
 
+  // Fx-select buttons are wired straight to Teensy pins 28-31 (see pins.h), pulled up, LOW = pressed.
+  void updateFxSelectButtons();
   Bounce fxSelectButtons_[kNumFxSelectButtons];
   bool fxSelectJustPressed_[kNumFxSelectButtons] = {false};
   Bounce drumPadButtons_[kNumDrumPadButtons];

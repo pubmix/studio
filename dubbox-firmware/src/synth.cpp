@@ -90,13 +90,6 @@ void Synth::assign(int index, int value) {
   }
 }
 
-bool Synth::setParam(int index, int value) {
-  if (index < 0 || index >= kParams) return false;
-  assign(index, value);
-  apply();
-  return true;
-}
-
 void Synth::setAll(const int* values) {
   for (int i = 0; i < kParams; ++i) assign(i, values[i]);
   apply();

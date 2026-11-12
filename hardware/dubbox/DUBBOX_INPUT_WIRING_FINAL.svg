@@ -1,0 +1,473 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 680 1768" role="img">
+<title>Dub-Box input wiring: two combo-jack channels, shared power and phantom supply</title>
+<desc>Channel 1 and channel 2 each take a combo jack through phantom feed, coupling, protection, INA163 preamp and TL072 instrument buffer to the Audio Shield line input, with 0.1 microfarad decoupling at the supply pins, then the two negative-voltage chips, the bias divider and the MC34063 phantom supply.</desc>
+<style>
+:root{--s:#5F5E5A;--t:#888780}
+svg{background:#fff;font-family:Arial,Helvetica,sans-serif}
+.t,.ts,.th{fill:#2C2C2A}
+.ts{font-size:12px;fill:#444441}
+.th{font-size:14px;font-weight:700}
+.box{fill:#F1EFE8;stroke:#888780}
+.arr{stroke:#5F5E5A;stroke-width:1.5}
+.c-purple>rect{fill:#EEEDFE;stroke:#534AB7}.c-purple .th{fill:#3C3489}.c-purple .ts{fill:#534AB7}
+.c-teal>rect{fill:#E1F5EE;stroke:#0F6E56}.c-teal .th{fill:#085041}.c-teal .ts{fill:#0F6E56}
+</style>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+<g transform="translate(0,0)">
+<text class="th" x="14" y="16" dominant-baseline="central">Channel 1: combo jack 1 to LINE IN L</text>
+<rect class="box" x="14" y="64" width="100" height="418" rx="3" stroke-width="0.5"/>
+<text class="th" x="64" y="78" text-anchor="middle" dominant-baseline="central">Combo jack</text>
+<text class="ts" x="64" y="94" text-anchor="middle" dominant-baseline="central">XLR + 1/4 in</text>
+<text class="ts" x="106" y="110" text-anchor="end" dominant-baseline="central">XLR 3</text>
+<text class="ts" x="106" y="170" text-anchor="end" dominant-baseline="central">XLR 2</text>
+<text class="ts" x="106" y="290" text-anchor="end" dominant-baseline="central">XLR 1</text>
+<text class="ts" x="106" y="320" text-anchor="end" dominant-baseline="central">XLR G</text>
+<text class="ts" x="106" y="375" text-anchor="end" dominant-baseline="central">T (tip)</text>
+<text class="ts" x="106" y="410" text-anchor="end" dominant-baseline="central">TS</text>
+<text class="ts" x="106" y="445" text-anchor="end" dominant-baseline="central">S (sleeve)</text>
+<text class="ts" x="64" y="470" text-anchor="middle" dominant-baseline="central">R, RS, SS: n/c</text>
+<path d="M114 110 L150 110" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<path d="M194 110 L280 110" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<path d="M316 110 L420 110" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<rect class="box" x="150" y="101" width="44" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="172" y="110" text-anchor="middle" dominant-baseline="central">33µF</text>
+<rect class="box" x="280" y="101" width="36" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="298" y="110" text-anchor="middle" dominant-baseline="central">47Ω</text>
+<path d="M114 170 L150 170" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<path d="M194 170 L280 170" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<path d="M316 170 L420 170" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<rect class="box" x="150" y="161" width="44" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="172" y="170" text-anchor="middle" dominant-baseline="central">33µF</text>
+<rect class="box" x="280" y="161" width="36" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="298" y="170" text-anchor="middle" dominant-baseline="central">47Ω</text>
+<text class="ts" x="146" y="102" text-anchor="end" dominant-baseline="central">+</text>
+<text class="ts" x="146" y="162" text-anchor="end" dominant-baseline="central">+</text>
+<path d="M128 110 L128 90" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<path d="M128 58 L128 50" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<rect class="box" x="119" y="58" width="18" height="32" rx="3" stroke-width="0.5"/>
+<text class="ts" x="143" y="74" dominant-baseline="central">1.2k</text>
+<text class="ts" x="128" y="40" text-anchor="middle" dominant-baseline="central">+25.7 V</text>
+<path d="M128 170 L128 190" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<path d="M128 222 L128 238" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<rect class="box" x="119" y="190" width="18" height="32" rx="3" stroke-width="0.5"/>
+<text class="ts" x="143" y="206" dominant-baseline="central">1.2k</text>
+<text class="ts" x="122" y="252" dominant-baseline="central">+25.7 V</text>
+<circle cx="128" cy="110" r="2.5" fill="#D85A30"/>
+<circle cx="128" cy="170" r="2.5" fill="#D85A30"/>
+<path d="M214 110 L214 90" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<path d="M214 58 L214 50" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<rect class="box" x="205" y="58" width="18" height="32" rx="3" stroke-width="0.5"/>
+<text class="ts" x="229" y="74" dominant-baseline="central">2.2k</text>
+<text class="ts" x="214" y="40" text-anchor="middle" dominant-baseline="central">GND</text>
+<path d="M214 170 L214 190" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<path d="M214 222 L214 238" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<rect class="box" x="205" y="190" width="18" height="32" rx="3" stroke-width="0.5"/>
+<text class="ts" x="229" y="206" dominant-baseline="central">2.2k</text>
+<text class="ts" x="214" y="252" text-anchor="middle" dominant-baseline="central">GND</text>
+<circle cx="214" cy="110" r="2.5" fill="#1D9E75"/>
+<circle cx="214" cy="170" r="2.5" fill="#1D9E75"/>
+<path d="M336 110 L336 90" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<rect class="box" x="304" y="58" width="64" height="32" rx="3" stroke-width="0.5"/>
+<text class="ts" x="336" y="74" text-anchor="middle" dominant-baseline="central">clamp ×2</text>
+<circle cx="336" cy="110" r="2.5" fill="#1D9E75"/>
+<path d="M336 170 L336 196" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<rect class="box" x="304" y="196" width="64" height="32" rx="3" stroke-width="0.5"/>
+<text class="ts" x="336" y="212" text-anchor="middle" dominant-baseline="central">clamp ×2</text>
+<circle cx="336" cy="170" r="2.5" fill="#1D9E75"/>
+<path d="M114 290 L140 290" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<text class="ts" x="146" y="290" dominant-baseline="central">GND</text>
+<path d="M114 320 L140 320" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<text class="ts" x="146" y="320" dominant-baseline="central">GND</text>
+<path d="M114 410 L140 410" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<text class="ts" x="146" y="410" dominant-baseline="central">GND</text>
+<path d="M114 445 L140 445" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<text class="ts" x="146" y="445" dominant-baseline="central">GND</text>
+<path d="M114 375 L122 375" fill="none" stroke="#BA7517" stroke-width="1.2"/>
+<path d="M150 375 L156 375" fill="none" stroke="#BA7517" stroke-width="1.2"/>
+<path d="M196 375 L216 375" fill="none" stroke="#BA7517" stroke-width="1.2"/>
+<rect class="box" x="122" y="366" width="28" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="136" y="375" text-anchor="middle" dominant-baseline="central">1k</text>
+<rect class="box" x="156" y="366" width="40" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="176" y="375" text-anchor="middle" dominant-baseline="central">0.1µF</text>
+<circle cx="204" cy="375" r="2.5" fill="#BA7517"/>
+<path d="M204 375 L204 395" fill="none" stroke="#BA7517" stroke-width="1.2"/>
+<path d="M204 429 L204 445" fill="none" stroke="#BA7517" stroke-width="1.2"/>
+<rect class="box" x="195" y="395" width="18" height="34" rx="3" stroke-width="0.5"/>
+<text class="ts" x="190" y="412" text-anchor="end" dominant-baseline="central">1M</text>
+<text class="ts" x="204" y="458" text-anchor="middle" dominant-baseline="central">Vb</text>
+<g class="c-purple">
+<rect x="216" y="300" width="80" height="100" rx="8" stroke-width="0.5"/>
+<text class="th" x="256" y="314" text-anchor="middle" dominant-baseline="central">TL072 A</text>
+<text class="ts" x="224" y="335" dominant-baseline="central">2 −</text>
+<text class="ts" x="224" y="375" dominant-baseline="central">3 +</text>
+<text class="ts" x="288" y="355" text-anchor="end" dominant-baseline="central">1 out</text>
+<text class="ts" x="236" y="388" text-anchor="middle" dominant-baseline="central">8 V+</text>
+<text class="ts" x="276" y="388" text-anchor="middle" dominant-baseline="central">4 V−</text>
+</g>
+<path d="M296 355 L314 355" fill="none" stroke="#BA7517" stroke-width="1.2"/>
+<path d="M308 355 L308 284 L212 284 L212 335 L216 335" fill="none" stroke="#BA7517" stroke-width="1.2"/>
+<circle cx="308" cy="355" r="2.5" fill="#BA7517"/>
+<text class="ts" x="256" y="272" text-anchor="middle" dominant-baseline="central">unity buffer</text>
+<path d="M236 400 L236 470" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<path d="M236 470 L262 470" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<path d="M302 470 L318 470" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<circle cx="236" cy="470" r="2.5" fill="var(--s)"/>
+<text class="ts" x="242" y="408" dominant-baseline="central">+5 V</text>
+<rect class="box" x="262" y="461" width="40" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="282" y="470" text-anchor="middle" dominant-baseline="central">0.1µF</text>
+<text class="ts" x="324" y="470" dominant-baseline="central">GND</text>
+<path d="M276 400 L276 442" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<path d="M276 442 L300 442" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<path d="M340 442 L356 442" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<circle cx="276" cy="442" r="2.5" fill="var(--s)"/>
+<text class="ts" x="270" y="430" text-anchor="end" dominant-baseline="central">V−1</text>
+<rect class="box" x="300" y="433" width="40" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="320" y="442" text-anchor="middle" dominant-baseline="central">0.1µF</text>
+<text class="ts" x="362" y="442" dominant-baseline="central">GND</text>
+<path d="M350 355 L356 355" fill="none" stroke="#BA7517" stroke-width="1.2"/>
+<path d="M388 355 L400 355 L400 170" fill="none" stroke="#BA7517" stroke-width="1.2"/>
+<rect class="box" x="314" y="346" width="36" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="332" y="355" text-anchor="middle" dominant-baseline="central">10µF</text>
+<text class="ts" x="318" y="338" dominant-baseline="central">+</text>
+<rect class="box" x="356" y="346" width="32" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="372" y="355" text-anchor="middle" dominant-baseline="central">22k</text>
+<circle cx="400" cy="170" r="2.5" fill="#BA7517"/>
+<g class="c-purple">
+<rect x="420" y="76" width="120" height="176" rx="8" stroke-width="0.5"/>
+<text class="th" x="480" y="196" text-anchor="middle" dominant-baseline="central">INA163</text>
+<text class="ts" x="480" y="212" text-anchor="middle" dominant-baseline="central">mic preamp</text>
+<text class="ts" x="428" y="110" dominant-baseline="central">4 VIN−</text>
+<text class="ts" x="428" y="170" dominant-baseline="central">5 VIN+</text>
+<text class="ts" x="532" y="110" text-anchor="end" dominant-baseline="central">9 VO</text>
+<text class="ts" x="532" y="140" text-anchor="end" dominant-baseline="central">8 Sense</text>
+<text class="ts" x="532" y="170" text-anchor="end" dominant-baseline="central">10 Ref</text>
+<text class="ts" x="440" y="92" text-anchor="middle" dominant-baseline="central">11 V+</text>
+<text class="ts" x="520" y="92" text-anchor="middle" dominant-baseline="central">6 V−</text>
+<text class="ts" x="450" y="238" text-anchor="middle" dominant-baseline="central">3 RG</text>
+<text class="ts" x="510" y="238" text-anchor="middle" dominant-baseline="central">12 RG</text>
+</g>
+<path d="M440 76 L440 30" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<path d="M440 64 L410 64" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<path d="M410 64 L410 58" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<path d="M410 34 L410 26" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<circle cx="440" cy="64" r="2.5" fill="var(--s)"/>
+<rect class="box" x="401" y="34" width="18" height="24" rx="3" stroke-width="0.5"/>
+<text class="ts" x="396" y="46" text-anchor="end" dominant-baseline="central">0.1µF</text>
+<text class="ts" x="410" y="18" text-anchor="middle" dominant-baseline="central">GND</text>
+<text class="ts" x="446" y="20" dominant-baseline="central">+5 V</text>
+<path d="M520 76 L520 30" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<path d="M520 64 L542 64" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<path d="M542 64 L542 58" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<path d="M542 34 L542 26" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<circle cx="520" cy="64" r="2.5" fill="var(--s)"/>
+<rect class="box" x="533" y="34" width="18" height="24" rx="3" stroke-width="0.5"/>
+<text class="ts" x="557" y="46" dominant-baseline="central">0.1µF</text>
+<text class="ts" x="542" y="18" text-anchor="middle" dominant-baseline="central">GND</text>
+<text class="ts" x="514" y="20" text-anchor="end" dominant-baseline="central">V−1</text>
+<path d="M450 252 L450 272" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<path d="M510 252 L510 272" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<rect class="box" x="440" y="272" width="80" height="24" rx="3" stroke-width="0.5"/>
+<text class="ts" x="480" y="284" text-anchor="middle" dominant-baseline="central">RG</text>
+<text class="ts" x="480" y="312" text-anchor="middle" dominant-baseline="central">4.99 Ω + 1 kΩ pot</text>
+<path d="M540 110 L575 110" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<path d="M611 110 L650 110" fill="none" stroke="#1D9E75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<rect class="box" x="575" y="101" width="36" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="593" y="110" text-anchor="middle" dominant-baseline="central">1k</text>
+<path d="M540 140 L556 140 L556 110" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<circle cx="556" cy="110" r="2.5" fill="#1D9E75"/>
+<text class="ts" x="588" y="88" dominant-baseline="central">LINE IN L</text>
+<path d="M540 170 L570 170 L570 186" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<text class="ts" x="570" y="198" text-anchor="middle" dominant-baseline="central">GND</text>
+</g>
+<g transform="translate(0,520)">
+<text class="th" x="14" y="16" dominant-baseline="central">Channel 2: combo jack 2 to LINE IN R</text>
+<rect class="box" x="14" y="64" width="100" height="418" rx="3" stroke-width="0.5"/>
+<text class="th" x="64" y="78" text-anchor="middle" dominant-baseline="central">Combo jack</text>
+<text class="ts" x="64" y="94" text-anchor="middle" dominant-baseline="central">XLR + 1/4 in</text>
+<text class="ts" x="106" y="110" text-anchor="end" dominant-baseline="central">XLR 3</text>
+<text class="ts" x="106" y="170" text-anchor="end" dominant-baseline="central">XLR 2</text>
+<text class="ts" x="106" y="290" text-anchor="end" dominant-baseline="central">XLR 1</text>
+<text class="ts" x="106" y="320" text-anchor="end" dominant-baseline="central">XLR G</text>
+<text class="ts" x="106" y="375" text-anchor="end" dominant-baseline="central">T (tip)</text>
+<text class="ts" x="106" y="410" text-anchor="end" dominant-baseline="central">TS</text>
+<text class="ts" x="106" y="445" text-anchor="end" dominant-baseline="central">S (sleeve)</text>
+<text class="ts" x="64" y="470" text-anchor="middle" dominant-baseline="central">R, RS, SS: n/c</text>
+<path d="M114 110 L150 110" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<path d="M194 110 L280 110" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<path d="M316 110 L420 110" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<rect class="box" x="150" y="101" width="44" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="172" y="110" text-anchor="middle" dominant-baseline="central">33µF</text>
+<rect class="box" x="280" y="101" width="36" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="298" y="110" text-anchor="middle" dominant-baseline="central">47Ω</text>
+<path d="M114 170 L150 170" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<path d="M194 170 L280 170" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<path d="M316 170 L420 170" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<rect class="box" x="150" y="161" width="44" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="172" y="170" text-anchor="middle" dominant-baseline="central">33µF</text>
+<rect class="box" x="280" y="161" width="36" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="298" y="170" text-anchor="middle" dominant-baseline="central">47Ω</text>
+<text class="ts" x="146" y="102" text-anchor="end" dominant-baseline="central">+</text>
+<text class="ts" x="146" y="162" text-anchor="end" dominant-baseline="central">+</text>
+<path d="M128 110 L128 90" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<path d="M128 58 L128 50" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<rect class="box" x="119" y="58" width="18" height="32" rx="3" stroke-width="0.5"/>
+<text class="ts" x="143" y="74" dominant-baseline="central">1.2k</text>
+<text class="ts" x="128" y="40" text-anchor="middle" dominant-baseline="central">+25.7 V</text>
+<path d="M128 170 L128 190" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<path d="M128 222 L128 238" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<rect class="box" x="119" y="190" width="18" height="32" rx="3" stroke-width="0.5"/>
+<text class="ts" x="143" y="206" dominant-baseline="central">1.2k</text>
+<text class="ts" x="122" y="252" dominant-baseline="central">+25.7 V</text>
+<circle cx="128" cy="110" r="2.5" fill="#D85A30"/>
+<circle cx="128" cy="170" r="2.5" fill="#D85A30"/>
+<path d="M214 110 L214 90" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<path d="M214 58 L214 50" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<rect class="box" x="205" y="58" width="18" height="32" rx="3" stroke-width="0.5"/>
+<text class="ts" x="229" y="74" dominant-baseline="central">2.2k</text>
+<text class="ts" x="214" y="40" text-anchor="middle" dominant-baseline="central">GND</text>
+<path d="M214 170 L214 190" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<path d="M214 222 L214 238" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<rect class="box" x="205" y="190" width="18" height="32" rx="3" stroke-width="0.5"/>
+<text class="ts" x="229" y="206" dominant-baseline="central">2.2k</text>
+<text class="ts" x="214" y="252" text-anchor="middle" dominant-baseline="central">GND</text>
+<circle cx="214" cy="110" r="2.5" fill="#1D9E75"/>
+<circle cx="214" cy="170" r="2.5" fill="#1D9E75"/>
+<path d="M336 110 L336 90" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<rect class="box" x="304" y="58" width="64" height="32" rx="3" stroke-width="0.5"/>
+<text class="ts" x="336" y="74" text-anchor="middle" dominant-baseline="central">clamp ×2</text>
+<circle cx="336" cy="110" r="2.5" fill="#1D9E75"/>
+<path d="M336 170 L336 196" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<rect class="box" x="304" y="196" width="64" height="32" rx="3" stroke-width="0.5"/>
+<text class="ts" x="336" y="212" text-anchor="middle" dominant-baseline="central">clamp ×2</text>
+<circle cx="336" cy="170" r="2.5" fill="#1D9E75"/>
+<path d="M114 290 L140 290" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<text class="ts" x="146" y="290" dominant-baseline="central">GND</text>
+<path d="M114 320 L140 320" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<text class="ts" x="146" y="320" dominant-baseline="central">GND</text>
+<path d="M114 410 L140 410" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<text class="ts" x="146" y="410" dominant-baseline="central">GND</text>
+<path d="M114 445 L140 445" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<text class="ts" x="146" y="445" dominant-baseline="central">GND</text>
+<path d="M114 375 L122 375" fill="none" stroke="#BA7517" stroke-width="1.2"/>
+<path d="M150 375 L156 375" fill="none" stroke="#BA7517" stroke-width="1.2"/>
+<path d="M196 375 L216 375" fill="none" stroke="#BA7517" stroke-width="1.2"/>
+<rect class="box" x="122" y="366" width="28" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="136" y="375" text-anchor="middle" dominant-baseline="central">1k</text>
+<rect class="box" x="156" y="366" width="40" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="176" y="375" text-anchor="middle" dominant-baseline="central">0.1µF</text>
+<circle cx="204" cy="375" r="2.5" fill="#BA7517"/>
+<path d="M204 375 L204 395" fill="none" stroke="#BA7517" stroke-width="1.2"/>
+<path d="M204 429 L204 445" fill="none" stroke="#BA7517" stroke-width="1.2"/>
+<rect class="box" x="195" y="395" width="18" height="34" rx="3" stroke-width="0.5"/>
+<text class="ts" x="190" y="412" text-anchor="end" dominant-baseline="central">1M</text>
+<text class="ts" x="204" y="458" text-anchor="middle" dominant-baseline="central">Vb</text>
+<g class="c-purple">
+<rect x="216" y="300" width="80" height="100" rx="8" stroke-width="0.5"/>
+<text class="th" x="256" y="314" text-anchor="middle" dominant-baseline="central">TL072 B</text>
+<text class="ts" x="224" y="335" dominant-baseline="central">6 −</text>
+<text class="ts" x="224" y="375" dominant-baseline="central">5 +</text>
+<text class="ts" x="288" y="355" text-anchor="end" dominant-baseline="central">7 out</text>
+<text class="ts" x="256" y="388" text-anchor="middle" dominant-baseline="central">same chip</text>
+</g>
+<path d="M296 355 L314 355" fill="none" stroke="#BA7517" stroke-width="1.2"/>
+<path d="M308 355 L308 284 L212 284 L212 335 L216 335" fill="none" stroke="#BA7517" stroke-width="1.2"/>
+<circle cx="308" cy="355" r="2.5" fill="#BA7517"/>
+<text class="ts" x="256" y="272" text-anchor="middle" dominant-baseline="central">unity buffer</text>
+<path d="M350 355 L356 355" fill="none" stroke="#BA7517" stroke-width="1.2"/>
+<path d="M388 355 L400 355 L400 170" fill="none" stroke="#BA7517" stroke-width="1.2"/>
+<rect class="box" x="314" y="346" width="36" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="332" y="355" text-anchor="middle" dominant-baseline="central">10µF</text>
+<text class="ts" x="318" y="338" dominant-baseline="central">+</text>
+<rect class="box" x="356" y="346" width="32" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="372" y="355" text-anchor="middle" dominant-baseline="central">22k</text>
+<circle cx="400" cy="170" r="2.5" fill="#BA7517"/>
+<g class="c-purple">
+<rect x="420" y="76" width="120" height="176" rx="8" stroke-width="0.5"/>
+<text class="th" x="480" y="196" text-anchor="middle" dominant-baseline="central">INA163</text>
+<text class="ts" x="480" y="212" text-anchor="middle" dominant-baseline="central">mic preamp</text>
+<text class="ts" x="428" y="110" dominant-baseline="central">4 VIN−</text>
+<text class="ts" x="428" y="170" dominant-baseline="central">5 VIN+</text>
+<text class="ts" x="532" y="110" text-anchor="end" dominant-baseline="central">9 VO</text>
+<text class="ts" x="532" y="140" text-anchor="end" dominant-baseline="central">8 Sense</text>
+<text class="ts" x="532" y="170" text-anchor="end" dominant-baseline="central">10 Ref</text>
+<text class="ts" x="440" y="92" text-anchor="middle" dominant-baseline="central">11 V+</text>
+<text class="ts" x="520" y="92" text-anchor="middle" dominant-baseline="central">6 V−</text>
+<text class="ts" x="450" y="238" text-anchor="middle" dominant-baseline="central">3 RG</text>
+<text class="ts" x="510" y="238" text-anchor="middle" dominant-baseline="central">12 RG</text>
+</g>
+<path d="M440 76 L440 30" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<path d="M440 64 L410 64" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<path d="M410 64 L410 58" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<path d="M410 34 L410 26" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<circle cx="440" cy="64" r="2.5" fill="var(--s)"/>
+<rect class="box" x="401" y="34" width="18" height="24" rx="3" stroke-width="0.5"/>
+<text class="ts" x="396" y="46" text-anchor="end" dominant-baseline="central">0.1µF</text>
+<text class="ts" x="410" y="18" text-anchor="middle" dominant-baseline="central">GND</text>
+<text class="ts" x="446" y="20" dominant-baseline="central">+5 V</text>
+<path d="M520 76 L520 30" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<path d="M520 64 L542 64" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<path d="M542 64 L542 58" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<path d="M542 34 L542 26" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<circle cx="520" cy="64" r="2.5" fill="var(--s)"/>
+<rect class="box" x="533" y="34" width="18" height="24" rx="3" stroke-width="0.5"/>
+<text class="ts" x="557" y="46" dominant-baseline="central">0.1µF</text>
+<text class="ts" x="542" y="18" text-anchor="middle" dominant-baseline="central">GND</text>
+<text class="ts" x="514" y="20" text-anchor="end" dominant-baseline="central">V−2</text>
+<path d="M450 252 L450 272" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<path d="M510 252 L510 272" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<rect class="box" x="440" y="272" width="80" height="24" rx="3" stroke-width="0.5"/>
+<text class="ts" x="480" y="284" text-anchor="middle" dominant-baseline="central">RG</text>
+<text class="ts" x="480" y="312" text-anchor="middle" dominant-baseline="central">4.99 Ω + 1 kΩ pot</text>
+<path d="M540 110 L575 110" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<path d="M611 110 L650 110" fill="none" stroke="#1D9E75" stroke-width="1.2" marker-end="url(#arrow)"/>
+<rect class="box" x="575" y="101" width="36" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="593" y="110" text-anchor="middle" dominant-baseline="central">1k</text>
+<path d="M540 140 L556 140 L556 110" fill="none" stroke="#1D9E75" stroke-width="1.2"/>
+<circle cx="556" cy="110" r="2.5" fill="#1D9E75"/>
+<text class="ts" x="588" y="88" dominant-baseline="central">LINE IN R</text>
+<path d="M540 170 L570 170 L570 186" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<text class="ts" x="570" y="198" text-anchor="middle" dominant-baseline="central">GND</text>
+</g>
+<g transform="translate(0,1040)">
+<text class="th" x="14" y="16" dominant-baseline="central">Shared power: the two negative rails and the bias point</text>
+<g class="c-teal">
+<rect x="14" y="40" width="200" height="190" rx="8" stroke-width="0.5"/>
+<text class="th" x="114" y="58" text-anchor="middle" dominant-baseline="central">ICL7660S 1 (makes V−1)</text>
+<text class="ts" x="24" y="86" dominant-baseline="central">1 BOOST → +5 V</text>
+<text class="ts" x="24" y="104" dominant-baseline="central">2 CAP+ → C1 +</text>
+<text class="ts" x="24" y="122" dominant-baseline="central">3 GND → GND</text>
+<text class="ts" x="24" y="140" dominant-baseline="central">4 CAP− → C1 −</text>
+<text class="ts" x="24" y="158" dominant-baseline="central">5 VOUT → V−1 and C2 −</text>
+<text class="ts" x="24" y="176" dominant-baseline="central">6 LV → open</text>
+<text class="ts" x="24" y="194" dominant-baseline="central">7 OSC → open</text>
+<text class="ts" x="24" y="212" dominant-baseline="central">8 V+ → +5 V</text>
+</g>
+<g class="c-teal">
+<rect x="230" y="40" width="200" height="190" rx="8" stroke-width="0.5"/>
+<text class="th" x="330" y="58" text-anchor="middle" dominant-baseline="central">ICL7660S 2 (makes V−2)</text>
+<text class="ts" x="240" y="86" dominant-baseline="central">1 BOOST → +5 V</text>
+<text class="ts" x="240" y="104" dominant-baseline="central">2 CAP+ → C1 +</text>
+<text class="ts" x="240" y="122" dominant-baseline="central">3 GND → GND</text>
+<text class="ts" x="240" y="140" dominant-baseline="central">4 CAP− → C1 −</text>
+<text class="ts" x="240" y="158" dominant-baseline="central">5 VOUT → V−2 and C2 −</text>
+<text class="ts" x="240" y="176" dominant-baseline="central">6 LV → open</text>
+<text class="ts" x="240" y="194" dominant-baseline="central">7 OSC → open</text>
+<text class="ts" x="240" y="212" dominant-baseline="central">8 V+ → +5 V</text>
+</g>
+<text class="ts" x="222" y="252" text-anchor="middle" dominant-baseline="central">C1 and C2 = 10µF each. C2 + goes to GND.</text>
+<text class="ts" x="560" y="48" text-anchor="middle" dominant-baseline="central">+5 V</text>
+<path d="M560 56 L560 72" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<path d="M560 104 L560 144" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<path d="M560 176 L560 196" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<rect class="box" x="551" y="72" width="18" height="32" rx="3" stroke-width="0.5"/>
+<text class="ts" x="575" y="88" dominant-baseline="central">100k</text>
+<circle cx="560" cy="124" r="2.5" fill="var(--s)"/>
+<rect class="box" x="551" y="144" width="18" height="32" rx="3" stroke-width="0.5"/>
+<text class="ts" x="575" y="160" dominant-baseline="central">100k</text>
+<text class="ts" x="560" y="208" text-anchor="middle" dominant-baseline="central">V−1</text>
+<path d="M560 124 L630 124 L630 134" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<rect class="box" x="621" y="134" width="18" height="38" rx="3" stroke-width="0.5"/>
+<text class="ts" x="645" y="153" dominant-baseline="central">10µF</text>
+<path d="M630 172 L630 186" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<text class="ts" x="630" y="198" text-anchor="middle" dominant-baseline="central">GND</text>
+<text class="ts" x="548" y="124" text-anchor="end" dominant-baseline="central">Vb</text>
+</g>
+<g transform="translate(0,1300)">
+<text class="th" x="14" y="16" dominant-baseline="central">Shared phantom supply (makes the +25.7 V net)</text>
+<g class="c-purple">
+<rect x="230" y="110" width="120" height="160" rx="8" stroke-width="0.5"/>
+<text class="th" x="290" y="190" text-anchor="middle" dominant-baseline="central">MC34063</text>
+<text class="ts" x="238" y="130" dominant-baseline="central">8 Drv C</text>
+<text class="ts" x="238" y="170" dominant-baseline="central">7 Ipk</text>
+<text class="ts" x="238" y="210" dominant-baseline="central">6 VCC</text>
+<text class="ts" x="238" y="250" dominant-baseline="central">4 GND</text>
+<text class="ts" x="342" y="130" text-anchor="end" dominant-baseline="central">1 Sw C</text>
+<text class="ts" x="342" y="170" text-anchor="end" dominant-baseline="central">2 Sw E</text>
+<text class="ts" x="342" y="210" text-anchor="end" dominant-baseline="central">3 Ct</text>
+<text class="ts" x="342" y="250" text-anchor="end" dominant-baseline="central">5 Comp −</text>
+</g>
+<text class="ts" x="90" y="46" text-anchor="middle" dominant-baseline="central">+5 V</text>
+<path d="M90 56 L90 232" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<circle cx="90" cy="170" r="2.5" fill="var(--s)"/>
+<circle cx="90" cy="210" r="2.5" fill="var(--s)"/>
+<path d="M90 210 L230 210" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<path d="M90 170 L115 170" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<path d="M155 170 L230 170" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<rect class="box" x="115" y="161" width="40" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="135" y="170" text-anchor="middle" dominant-baseline="central">0.75Ω</text>
+<circle cx="185" cy="170" r="2.5" fill="#D85A30"/>
+<path d="M185 170 L185 96" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<path d="M185 130 L192 130" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<path d="M220 130 L230 130" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<circle cx="185" cy="130" r="2.5" fill="#D85A30"/>
+<rect class="box" x="192" y="121" width="28" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="206" y="130" text-anchor="middle" dominant-baseline="central">180</text>
+<path d="M185 96 L225 96" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<path d="M277 96 L382 96 L382 130 L350 130" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<rect class="box" x="225" y="87" width="52" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="251" y="96" text-anchor="middle" dominant-baseline="central">220µH</text>
+<circle cx="382" cy="130" r="2.5" fill="#D85A30"/>
+<path d="M382 130 L410 130" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<path d="M434 130 L460 130" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<polygon points="410,120 410,140 432,130" fill="var(--s)" stroke="var(--s)" stroke-width="1"/>
+<path d="M434 120 V140" stroke="var(--s)" stroke-width="2" fill="none"/>
+<text class="ts" x="422" y="108" text-anchor="middle" dominant-baseline="central">MBR1060</text>
+<circle cx="460" cy="130" r="2.5" fill="#D85A30"/>
+<path d="M460 130 L600 130" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<path d="M636 130 L650 130" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<path d="M350 170 L370 170" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<text class="ts" x="376" y="170" dominant-baseline="central">GND</text>
+<path d="M350 210 L366 210" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<path d="M406 210 L420 210" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<rect class="box" x="366" y="201" width="40" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="386" y="210" text-anchor="middle" dominant-baseline="central">1nF</text>
+<text class="ts" x="426" y="210" dominant-baseline="central">GND</text>
+<path d="M350 250 L565 250" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<circle cx="565" cy="250" r="2.5" fill="#D85A30"/>
+<circle cx="490" cy="130" r="2.5" fill="#D85A30"/>
+<path d="M490 130 L490 150" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<path d="M490 194 L490 206" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<rect class="box" x="481" y="150" width="18" height="44" rx="3" stroke-width="0.5"/>
+<text class="ts" x="505" y="172" dominant-baseline="central">33µF</text>
+<text class="ts" x="490" y="220" text-anchor="middle" dominant-baseline="central">GND</text>
+<circle cx="565" cy="130" r="2.5" fill="#D85A30"/>
+<path d="M565 130 L565 160" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<path d="M565 200 L565 250" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<rect class="box" x="556" y="160" width="18" height="40" rx="3" stroke-width="0.5"/>
+<text class="ts" x="580" y="180" dominant-baseline="central">43k</text>
+<path d="M565 250 L565 262" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<path d="M565 294 L565 306" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<rect class="box" x="556" y="262" width="18" height="32" rx="3" stroke-width="0.5"/>
+<text class="ts" x="580" y="278" dominant-baseline="central">2.2k</text>
+<text class="ts" x="565" y="320" text-anchor="middle" dominant-baseline="central">GND</text>
+<rect class="box" x="600" y="121" width="36" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="618" y="130" text-anchor="middle" dominant-baseline="central">1µH</text>
+<circle cx="650" cy="130" r="2.5" fill="#D85A30"/>
+<path d="M650 130 L650 92" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<path d="M650 130 L650 150" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<path d="M650 194 L650 206" fill="none" stroke="#D85A30" stroke-width="1.2"/>
+<rect class="box" x="641" y="150" width="18" height="44" rx="3" stroke-width="0.5"/>
+<text class="ts" x="635" y="172" text-anchor="end" dominant-baseline="central">100µF</text>
+<text class="ts" x="650" y="220" text-anchor="middle" dominant-baseline="central">GND</text>
+<text class="ts" x="650" y="82" text-anchor="middle" dominant-baseline="central">+25.7 V</text>
+<path d="M81 232 L99 232" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<path d="M90 232 L90 240" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<rect class="box" x="81" y="240" width="18" height="36" rx="3" stroke-width="0.5"/>
+<text class="ts" x="105" y="258" dominant-baseline="central">100µF</text>
+<path d="M90 276 L90 290" fill="none" stroke="var(--s)" stroke-width="1.2"/>
+<text class="ts" x="90" y="304" text-anchor="middle" dominant-baseline="central">GND</text>
+</g>
+<text class="ts" x="14" y="1642" dominant-baseline="central">clamp ×2 = two 1N4148 diodes: one from the node up to +5 V (anode at the node),</text>
+<text class="ts" x="14" y="1658" dominant-baseline="central">and one from the V− rail up to the node (anode at the rail).</text>
+<text class="ts" x="14" y="1676" dominant-baseline="central">All GND labels join one star point tied to the Audio Shield's G pad.</text>
+<text class="ts" x="14" y="1694" dominant-baseline="central">Phantom off: remove the +25.7 V link to the four 1.2k feed resistors.</text>
+<text class="ts" x="14" y="1710" dominant-baseline="central">A shorted pin makes a feed resistor dissipate 0.55 W: use 1/2 W parts if you can.</text>
+<path d="M40 1738 H70" stroke="#1D9E75" stroke-width="2" fill="none"/>
+<text class="ts" x="78" y="1738" dominant-baseline="central">Mic path</text>
+<path d="M150 1738 H180" stroke="#BA7517" stroke-width="2" fill="none"/>
+<text class="ts" x="188" y="1738" dominant-baseline="central">Instrument path</text>
+<path d="M310 1738 H340" stroke="#D85A30" stroke-width="2" fill="none"/>
+<text class="ts" x="348" y="1738" dominant-baseline="central">Phantom feed</text>
+<path d="M450 1738 H480" stroke="var(--s)" stroke-width="2" fill="none"/>
+<text class="ts" x="488" y="1738" dominant-baseline="central">Power and ground</text>
+</svg>

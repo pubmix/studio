@@ -47,12 +47,10 @@ class Synth {
   // A synth that is switched off makes no sound and costs (almost) no CPU: its oscillators are
   // silenced and its effects get no input. Instruments that do not exist are kept switched off.
   void setEnabled(bool on);
-  bool enabled() const { return enabled_; }
 
   const SynthPatch& patch() const { return patch_; }
   void setPatch(const SynthPatch& p);
   // Sets one parameter by index (clamped to its range); false for a bad index.
-  bool setParam(int index, int value);
   // Sets every parameter at once (kParams values, clamped) and applies them a single time.
   void setAll(const int* values);
   int param(int index) const;

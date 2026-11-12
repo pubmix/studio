@@ -18,10 +18,12 @@ namespace pins {
 //   A10 (pin 24) is a normal top-header pin, still past the Audio
 //   Shield's shorter footprint, but a standard pluggable location.
 // Faders 2-4 on A11-A13 (pins 25-27), same top-header row, same reasoning.
-constexpr uint8_t kFader[4] = {A10, A11, A12, A13};
+// Order reversed 2026-11-11 (wired backwards on the panel): fader 1 = A13 (pin 27) ... fader 4 = A10 (pin 24).
+constexpr uint8_t kFader[4] = {A13, A12, A11, A10};
 
 // The UI is a separate ESP32 touchscreen on UART (Serial1: pin 0 = RX, pin 1 = TX), see
-// esp_link.h. Pins 11-13 and 28-32 (once the old ILI9488 SPI screen) are free.
+// esp_link.h. Pins 11-13, 15 and 32 are free (11-13 and 28-32 were the old ILI9488 SPI screen; 28-31
+// are now the fx-select buttons).
 
 // Encoders 1-4 (fx core phase). Encoder 1 confirmed 2026-07-20, encoder 2
 // 2026-09-07, encoders 3-4 2026-09-10.
@@ -31,8 +33,7 @@ constexpr uint8_t kFader[4] = {A10, A11, A12, A13};
 //   mixup; fine here since it's deliberate).
 //   Encoder 3 is on normal header pins 6/9/10.
 //   Encoder 4: A on header pin 22, B/Push on bottom solder pads 39/40.
-// This exhausts the easily-reachable GPIO — transport + power buttons
-// will need an MCP23017 I2C expander on the existing 18/19 bus.
+// Transport + power buttons, if added, can use the remaining free pins listed below.
 constexpr uint8_t kEncoderA[4] = {33, 36, 6, 22};
 constexpr uint8_t kEncoderB[4] = {34, 37, 9, 39};
 constexpr uint8_t kEncoderButton[4] = {35, 38, 10, 40};
@@ -47,12 +48,15 @@ constexpr uint8_t kEncoderButton[4] = {35, 38, 10, 40};
 // troubleshooting — 41 is a bottom solder pad (same section as encoder
 // 4's 39/40), not a plain jumper-in pin like the rest of this set. (Pad 3
 // was briefly moved there by mistake and has been moved back to 16.)
-constexpr uint8_t kFxSelectButton[4] = {2, 3, 4, 5};
-constexpr uint8_t kDrumPadButton[4] = {14, 41, 16, 17};  // A0,A17,A2,A3
+// Order reversed 2026-11-11 (wired backwards on the panel): pad 1 = pin 17 ... pad 4 = pin 14.
+constexpr uint8_t kDrumPadButton[4] = {17, 16, 41, 14};  // A3,A2,A17,A0
 
-// Not yet assigned — direct GPIO is fully spent after encoders 3-4, so
-// these need an MCP23017 I2C expander on the existing 18/19 bus:
-//   kTransportButton[3], kPowerButton
+// Fx-select buttons 1-4 go straight to Teensy pins 28-31 (the MCP23017 expander was removed on
+// 2026-11-11, there were enough free pins). One leg of each switch to GND; pull-ups are enabled
+// in firmware, LOW = pressed. Pins 2-5 stay free for the internal mic's I2S2 bus.
+constexpr uint8_t kFxSelectButton[4] = {28, 29, 30, 31};
+
+// Not yet assigned: kTransportButton[3], kPowerButton. Free pins left: 2, 11, 12, 13, 15, 32.
 // Ask before wiring these in.
 
 }  // namespace pins

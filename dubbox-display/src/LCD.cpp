@@ -834,11 +834,14 @@ BTE Function Status
 0 : BTE Function is idle.
 1 : BTE Function is busy.
 */
-  unsigned char temp;   
+  // Bounded wait: if the display controller stops answering (for example after a supply dip) a
+  // never-ending loop would trip the watchdog and reboot the board, so give up after ~200 ms.
+  unsigned char temp;
+  const unsigned long start = millis();
   do
   {
     temp=ER5517.LCD_StatusRead();
-  }while(temp&0x08);
+  }while((temp&0x08) && (millis() - start) < 200);
 
 }
 //[90h]=========================================================================

@@ -113,8 +113,13 @@ mapping and `audio_engine.h` for the send/return architecture.
 
 | Signal | Pin 1 | Pin 2 | Pin 3 | Pin 4 |
 |---|---|---|---|---|
-| Fx-select | 2 | 3 | 4 | 5 |
+| Fx-select | MCP23017 GPA0 | GPA1 | GPA2 | GPA3 |
 | Drum pad | 14 (A0) | **41 (A17)** | 16 (A2) | 17 (A3) |
+
+**Fx-select moved to an MCP23017** (I2C address 0x27 on this breakout, found by scanning the bus; the generic default is 0x20.
+SDA/SCL on Teensy 18/19 shared with the codec; each button's one leg to GND, pull-ups in
+firmware) to free Teensy pins 2/3/4 for the internal mic's I2S2 bus. Firmware migrated, not yet
+tested on hardware. The note below applies to the drum pads (and the old fx-select wiring).
 
 Confirmed 2026-09-10. All normal pluggable header pins except drum pad 2,
 moved to 41 (bottom solder pad, same section as encoder 4's 39/40) while

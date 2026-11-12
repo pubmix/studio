@@ -43,7 +43,7 @@ struct Wave {
 constexpr int kMaxProjects = 12;
 constexpr int kNameLen = 24;
 constexpr int kMaxFiles = 16;
-constexpr int kFileNameLen = 64;
+constexpr int kFileNameLen = 128;
 
 struct ProjectInfo {
   bool open = false;
@@ -113,7 +113,35 @@ struct SynthState {
   int v[kSynthParams] = {1, 0, 1, 0, 30, 3, 59, 18, 27, 100, 0, 0, 0, 80};  // the piano-like default
 };
 
+// Input recorder (the REC button on the playlist screen).
+struct Rec {
+  int state = 0;            // 0 = idle, 1 = recording, 2 = the last start was refused
+  uint32_t elapsedMs = 0;
+  int source = 0;           // 0 = internal mic, 1 = input 1 (LINE IN L), 2 = input 2 (LINE IN R)
+  char err[12] = {0};       // playing | noproject | notrack | busy | sd
+};
+
+// One recordable input (0 = internal mic, 1 = input 1 / LINE IN L, 2 = input 2 / LINE IN R).
+struct InputInfo {
+  int gainTenthsDb = 0;  // digital gain, tenths of a dB
+  int flags = 0;         // bit0 = 14.5 kHz notch, bit1 = 80 Hz low cut
+  int levelPermille = 0; // live level after gain (only while metering is on)
+};
+constexpr int kNumInputs = 3;
+
+// Raw physical controls, streamed by the Teensy only while the CONTROLS TEST screen asks for them.
+struct Controls {
+  int faderPermille[4] = {0, 0, 0, 0};
+  int encoderDetents[4] = {0, 0, 0, 0};  // cumulative detents since the Teensy booted (+ = clockwise)
+  int mask = 0;                          // bits 0-3 encoder push, 4-7 fx-select 1-4, 8-11 drum pad 1-4 (1 = held)
+  bool known = false;                    // at least one report has arrived
+};
+
 struct State {
+  Controls controls;
+  InputInfo input[kNumInputs];
+  bool inputKnown = false;
+  Rec rec;
   bool playing = false;
   uint32_t posMs = 0;
   uint32_t songMs = 0;
@@ -145,6 +173,9 @@ uint8_t takeChangedFx();      // fx chain changed (bitmask)
 uint8_t takeChangedWaves();   // a waveform finished arriving (bitmask)
 bool takeSongChanged();
 bool takeMixerChanged();      // fader/peak values changed
+bool takeInputChanged();      // input gain / filter settings reported by the Teensy
+bool takeInputLevelChanged(); // input level meters updated
+bool takeControlsChanged();   // a raw-controls report arrived (only while the CONTROLS TEST screen is open)
 bool takeProjectChanged();    // project opened/closed/renamed
 bool takeListChanged();       // project list (re)received
 bool takeFilesChanged();      // SD file list (re)received
@@ -181,7 +212,15 @@ const UploadReply& uploadReply();
 void sendAssignTrack(int track, const char* filename);
 void sendClearTrack(int track);
 void sendTogglePlay();
+// Start / stop recording onto the first empty track. `source`: 0 = internal mic, 1 = input 1, 2 = input 2.
+void sendRecord(bool on, int source = 0);
 void sendRewind();
+// Sets one input's digital gain (tenths of a dB) and filter flags (bit0 notch, bit1 low cut).
+void sendInput(int source, int gainTenthsDb, int flags);
+// Asks the Teensy to stream input levels (while the Input screen is showing).
+void sendInputMeters(bool on);
+// Asks the Teensy to stream the raw faders, encoders and buttons (while the CONTROLS TEST screen is showing).
+void sendControlsStream(bool on);
 void sendSeek(uint32_t positionMs);
 void sendVolume(int permille);
 void sendCrop(int track, int clip, uint32_t startMs, uint32_t endMs);
@@ -197,7 +236,6 @@ void sendBypass(int track, bool bypassed);
 // Drum machine edits. Each updates the local copy at once (so the screen reacts immediately)
 // and sends the change to the Teensy; the Teensy's own reports are ignored briefly afterwards.
 void editStep(int pattern, int row, int step, bool on);
-void clearPattern(int pattern);
 void setBpm(int bpm);
 // Loops a pattern on its own; with `record`, pad presses are recorded into it. For a pattern that is
 // already looping, `record` only turns recording on or off.
@@ -215,6 +253,7 @@ void setNote(int pattern, int inst, int midi, int start, int len);  // add, or c
 void removeNote(int pattern, int inst, int midi, int start);
 void clearNotes(int pattern, int inst);
 void auditionNote(int inst, int midi);
+void sendDrumHit(int row);  // play one drum row right now (the USB-MIDI bridge, channel 10)
 // Tells the Teensy which drum row a finger is holding (-1 = none): the next pad press routes it.
 void sendRouteHold(int row);
 // Piano mode: a finger is holding this piano key (-1 = none); the next pad press routes it.

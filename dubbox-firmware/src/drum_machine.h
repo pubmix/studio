@@ -53,7 +53,6 @@ class DrumMachine {
   void setRowBits(int pattern, int row, uint16_t bits);
   void setStep(int pattern, int row, int step, bool on);
   void clearPattern(int pattern);
-  bool patternEmpty(int pattern) const;
 
   // ---- Instruments (synths) ----
   int instrumentCount() const { return instCount_; }
@@ -61,8 +60,6 @@ class DrumMachine {
   bool addInstrument();
   // Deletes an instrument and its notes; the ones after it move down one place.
   bool removeInstrument(int inst);
-  const SynthPatch& synthPatch(int inst) const { return inst_[inst].patch(); }
-  bool setSynthParam(int inst, int index, int value);
   void setSynthAll(int inst, const int* values);
   int synthParam(int inst, int index) const { return inst_[inst].param(index); }
 
@@ -90,7 +87,6 @@ class DrumMachine {
   // The pads control either the drum sounds or piano notes (padMode: 0 = drums, 1 = notes). In
   // note mode they play instrument `inst` (the one being viewed on the display; -1 = unchanged).
   int padMode() const { return padMode_; }
-  int padInst() const { return padInst_; }
   void setPadMode(int mode, int inst = -1);
   // Note mode: each pad is routed to one MIDI note, routed the same way as drums (hold a key on
   // the display, press a pad).
@@ -112,7 +108,6 @@ class DrumMachine {
   // The sustain pedal: while it is down, notes that are let go keep sounding until it is released.
   // A pedal held from the display must keep being refreshed (setSustain(true) again).
   void setSustain(bool on, bool fromDisplay = false);
-  bool sustain() const { return sustain_; }
   // Plays one drum row right now.
   void hit(int row);
 
@@ -144,7 +139,6 @@ class DrumMachine {
   // this again for the pattern already looping just switches recording on or off, without
   // restarting the loop.
   void startPreview(int pattern, bool record = false);
-  void setRecording(bool on);
   bool recording() const { return recording_; }
   void stopPreview();
   // True during the one-bar count-in before recording starts.

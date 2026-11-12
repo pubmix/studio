@@ -90,8 +90,12 @@ FLASHMEM bool ProjectManager::save() {
   if (!open_) return false;
   char path[64];
   pathFor(name_, path, sizeof(path));
-  SD.remove(path);
-  File f = SD.open(path, FILE_WRITE);
+  // Write a temporary file first and swap it in at the end, so a reset or power loss mid-save
+  // leaves the previous version intact instead of a half-written (or missing) project.
+  char tmpPath[64];
+  snprintf(tmpPath, sizeof(tmpPath), "%s/%s.TMP", kDir, name_);
+  SD.remove(tmpPath);
+  File f = SD.open(tmpPath, FILE_WRITE);
   if (!f) return false;
   f.printf("NAME=%s\n", name_);
   f.printf("BEAT=%d%d%d%d\n", (beatMask_ >> 0) & 1, (beatMask_ >> 1) & 1, (beatMask_ >> 2) & 1,
@@ -154,6 +158,11 @@ FLASHMEM bool ProjectManager::save() {
     }
   }
   f.close();
+  SD.remove(path);
+  if (!SD.rename(tmpPath, path)) {
+    Serial.printf("PROJECT: save of %s failed (rename)\n", name_);
+    return false;
+  }
   savedBeatMask_ = beatMask_;
   savedDrumSig_ = drums.signature();
   dirty_ = false;
@@ -233,13 +242,16 @@ FLASHMEM bool ProjectManager::loadFile(const char* name, Loaded& out) {
       } else {
         out.oldFormat = true;
       }
+      int parsed = 0;
       for (int i = 0; i < Synth::kParams && *q != '\0'; ++i) {
         char* end = nullptr;
         out.synth[idx][i] = static_cast<int>(strtol(q, &end, 10));
         if (end == q) break;
-        out.hasSynth[idx] = true;
+        ++parsed;
         q = (*end == ',') ? end + 1 : end;
       }
+      // A short or damaged line would leave the rest uninitialised: keep the defaults instead.
+      out.hasSynth[idx] = parsed == Synth::kParams;
     } else if (strncmp(line, "PADNOTES=", 9) == 0) {
       const char* q = line + 9;
       for (int i = 0; i < DrumMachine::kPads && *q != '\0'; ++i) {
@@ -264,7 +276,7 @@ FLASHMEM bool ProjectManager::loadFile(const char* name, Loaded& out) {
                (n >= 4 && line[0] == 'P' && line[1] == 'N' && line[2] >= '0' &&
                 line[2] < '0' + DrumMachine::kNumPatterns && line[3] == '=')) {
       const bool old = line[0] == 'P';  // "PN<p>=" is an older file's single piano part: instrument 1
-      const int p = line[old ? 2 : 2] - '0';
+      const int p = line[2] - '0';
       const int inst = old ? 0 : line[3] - '0';
       if (old) out.oldFormat = true;
       const char* q = line + (old ? 4 : 5);
@@ -377,6 +389,7 @@ FLASHMEM bool ProjectManager::seedFromFiles(const char* name, const char* const 
 FLASHMEM bool ProjectManager::createNew(const char* rawName) {
   char clean[kProjectNameMax + 1];
   if (!sanitize(rawName, clean)) return false;
+  engine_->pauseAll();  // SD access below must not race the audio interrupt's streaming reads
   char path[64];
   pathFor(clean, path, sizeof(path));
   if (SD.exists(path)) return false;
@@ -395,19 +408,24 @@ FLASHMEM bool ProjectManager::createNew(const char* rawName) {
 FLASHMEM bool ProjectManager::openProject(const char* rawName) {
   char clean[kProjectNameMax + 1];
   if (!sanitize(rawName, clean)) return false;
+  engine_->pauseAll();  // SD access below must not race the audio interrupt's streaming reads
   Loaded data;
   if (!loadFile(clean, data)) return false;
 
   if (open_) closeProject();
   unloadAll();
 
-  bool loaded[kNumTracks] = {false, false, false, false};
+  // Check every file first: loadTrack() starts streaming at once, and SD.exists() must not run
+  // while a player is already reading the card from the audio interrupt.
+  bool present[kNumTracks] = {false, false, false, false};
   for (int i = 0; i < kNumTracks; ++i) {
     if (data.files[i][0] == '\0') continue;
-    if (!SD.exists(data.files[i])) {
-      Serial.printf("PROJECT: track %d file %s is missing\n", i + 1, data.files[i]);
-      continue;
-    }
+    present[i] = SD.exists(data.files[i]);
+    if (!present[i]) Serial.printf("PROJECT: track %d file %s is missing\n", i + 1, data.files[i]);
+  }
+  bool loaded[kNumTracks] = {false, false, false, false};
+  for (int i = 0; i < kNumTracks; ++i) {
+    if (!present[i]) continue;
     loaded[i] = engine_->loadTrack(i, data.files[i]);
     Serial.printf("PROJECT: track %d %s %s\n", i + 1, data.files[i], loaded[i] ? "loaded" : "FAILED");
   }
@@ -486,9 +504,46 @@ FLASHMEM bool ProjectManager::openProject(const char* rawName) {
   return true;
 }
 
-FLASHMEM bool ProjectManager::assignTrack(int track, const char* filename) {
-  if (!open_ || track < 0 || track >= kNumTracks || filename == nullptr) return false;
-  if (!SD.exists(filename)) return false;
+namespace {
+// The display firmware cuts file names at 63 characters when it sends them back. If `prefix` is not an
+// existing file, look for the one WAV in the card root whose name starts with it (case-insensitive).
+bool resolveByPrefix(const char* prefix, char* out, size_t outLen) {
+  const size_t n = strlen(prefix);
+  if (n < 8) return false;
+  File dir = SD.open("/");
+  if (!dir) return false;
+  int matches = 0;
+  while (true) {
+    File entry = dir.openNextFile();
+    if (!entry) break;
+    if (!entry.isDirectory() && strncasecmp(entry.name(), prefix, n) == 0) {
+      if (++matches == 1) {
+        strncpy(out, entry.name(), outLen - 1);
+        out[outLen - 1] = '\0';
+      }
+    }
+    entry.close();
+  }
+  dir.close();
+  return matches == 1;
+}
+}  // namespace
+
+FLASHMEM bool ProjectManager::assignTrack(int track, const char* filenameIn) {
+  char resolved[AudioEngine::kMaxFilenameLen];
+  const char* filename = filenameIn;
+  if (open_ && filenameIn != nullptr && !SD.exists(filenameIn) &&
+      resolveByPrefix(filenameIn, resolved, sizeof(resolved))) {
+    filename = resolved;
+  }
+  if (!open_ || track < 0 || track >= kNumTracks || filename == nullptr) {
+    Serial.printf("PROJECT: add to track rejected (open=%d track=%d)\n", open_ ? 1 : 0, track);
+    return false;
+  }
+  if (!SD.exists(filename)) {
+    Serial.printf("PROJECT: add to track rejected, '%s' not found on the SD card\n", filename);
+    return false;
+  }
   engine_->pauseAll();
   bool ok = engine_->loadTrack(track, filename);
   // The player parses the WAV header a few audio blocks after play() starts.
@@ -522,7 +577,7 @@ FLASHMEM void ProjectManager::closeProject() {
   Serial.println("PROJECT: closed");
 }
 
-void ProjectManager::update() {
+void ProjectManager::update(bool sdBusy) {
   if (!open_) return;
   bool differs = beatMask_ != savedBeatMask_ || engine_->drums().signature() != savedDrumSig_;
   for (int i = 0; i < kNumTracks && !differs; ++i) {
@@ -542,7 +597,7 @@ void ProjectManager::update() {
   if (!dirty_) {
     dirty_ = true;
     changedSinceMs_ = now;
-  } else if (now - changedSinceMs_ >= kAutosaveDelayMs && !engine_->isPlaying()) {
+  } else if (now - changedSinceMs_ >= kAutosaveDelayMs && !engine_->isPlaying() && !sdBusy) {
     // Writing the project file while tracks stream from the same SD card locks the
     // Teensy up, so the save waits until playback is paused.
     save();

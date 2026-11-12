@@ -156,13 +156,6 @@ void DrumMachine::clearPattern(int pattern) {
   for (int r = 0; r < kRows; ++r) rows_[pattern][r] = 0;
 }
 
-bool DrumMachine::patternEmpty(int pattern) const {
-  for (int r = 0; r < kRows; ++r) {
-    if (rows_[pattern][r] != 0) return false;
-  }
-  return true;
-}
-
 // ---- Instruments ----
 
 bool DrumMachine::addInstrument() {
@@ -199,11 +192,6 @@ bool DrumMachine::removeInstrument(int inst) {
   --instCount_;
   if (padInst_ >= instCount_) padInst_ = instCount_ > 0 ? instCount_ - 1 : 0;
   return true;
-}
-
-bool DrumMachine::setSynthParam(int inst, int index, int value) {
-  if (inst < 0 || inst >= instCount_) return false;
-  return inst_[inst].setParam(index, value);
 }
 
 void DrumMachine::setSynthAll(int inst, const int* values) {
@@ -641,7 +629,6 @@ void DrumMachine::stopPreview() {
   countIn_ = false;
 }
 
-void DrumMachine::setRecording(bool on) { recording_ = on && previewOn_ && !countIn_; }
 
 void DrumMachine::startPreview(int pattern, bool record) {
   if (pattern < 0 || pattern >= kNumPatterns) return;

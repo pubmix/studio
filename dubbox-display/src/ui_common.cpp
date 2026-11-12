@@ -17,9 +17,9 @@ bool s_buttonIsBack = false;
 int s_lastClockTenths = -1;
 
 constexpr uint32_t kHeaderBg = 0x18202e;
-constexpr Rect kTabRects[3] = {{722, 6, 836, 54}, {844, 6, 994, 54}, {1002, 6, 1152, 54}};
-constexpr const char* kTabLabels[3] = {"MIXER", "PLAYLIST", "PATTERN"};
-constexpr uint32_t kTabRgb[3] = {0x3d7fff, 0xff9f3d, 0xb45cff};
+constexpr Rect kTabRects[4] = {{720, 6, 804, 54}, {810, 6, 934, 54}, {940, 6, 1064, 54}, {1070, 6, 1152, 54}};
+constexpr const char* kTabLabels[4] = {"MIXER", "PLAYLIST", "PATTERN", "INPUT"};
+constexpr uint32_t kTabRgb[4] = {0x3d7fff, 0xff9f3d, 0xb45cff, 0x2fc7a0};
 constexpr Rect kMenuBtn = {1160, 6, 1268, 54};
 constexpr int kTitleX = 215;
 constexpr int kTitleMaxW = 200;
@@ -53,8 +53,11 @@ uint16_t rgb565(uint32_t rgb, float scale) {
   return (uint16_t)(((r & 0xF8) << 8) | ((gr & 0xFC) << 3) | (b >> 3));
 }
 
+static bool s_staged = false;
+static inline unsigned long redirect(unsigned long addr) { return (s_staged && addr == kVisible) ? kStaging : addr; }
+
 void setCanvas(unsigned long addr) {
-  ER5517.Canvas_Image_Start_address(addr);
+  ER5517.Canvas_Image_Start_address(redirect(addr));
   ER5517.Canvas_image_width(kPanelW);
   ER5517.Active_Window_XY(0, 0);
   ER5517.Active_Window_WH(kPanelW, kPanelH);
@@ -76,6 +79,8 @@ void fillRect(int lx1, int ly1, int lx2, int ly2, uint16_t color) {
 
 void bteCopy(unsigned long src, unsigned long dst, int lx, int ly, int lw, int lh) {
   if (lw <= 0 || lh <= 0) return;
+  src = redirect(src);
+  dst = redirect(dst);
   int px, py, pw, ph;
   toPanel(lx, ly, lx + lw - 1, ly + lh - 1, px, py, pw, ph);
   ER5517.BTE_S0_Color_16bpp();
@@ -95,6 +100,14 @@ void bteCopy(unsigned long src, unsigned long dst, int lx, int ly, int lw, int l
   ER5517.BTE_Window_Size(pw, ph);
   ER5517.BTE_Enable();
   ER5517.Check_BTE_Busy();
+}
+
+void beginStagedDraw() { s_staged = true; }
+
+void presentStagedDraw() {
+  s_staged = false;
+  bteCopy(kStaging, kVisible, 0, 0, kW, kH);
+  setCanvas(kVisible);
 }
 
 const GFXfont* fontSmall() { return &FreeSansBold12pt7b; }
@@ -216,7 +229,7 @@ void drawHeader(const char* title, int activeTab, const char* buttonLabel) {
   drawVolume(true);
   setCanvas(kVisible);  // drawVolume() leaves the scratch layer selected
   if (s_showTabs) {
-    for (int i = 0; i < 3; ++i) drawTab(i, i == activeTab);
+    for (int i = 0; i < 4; ++i) drawTab(i, i == activeTab);
   }
   if (s_showButton) {
     drawBox(kMenuBtn, s_showTabs ? "MENU" : buttonLabel, 0xd03a3a, 1.0f, 0xff8a80, 0xffffff);
@@ -265,6 +278,7 @@ HeaderHit headerHit(int x, int y) {
     if (inRect(kTabRects[0], x, y)) return HeaderHit::TabMixer;
     if (inRect(kTabRects[1], x, y)) return HeaderHit::TabPlaylist;
     if (inRect(kTabRects[2], x, y)) return HeaderHit::TabPattern;
+    if (inRect(kTabRects[3], x, y)) return HeaderHit::TabInput;
   }
   if (s_showButton && inRect(kMenuBtn, x, y)) return s_buttonIsBack ? HeaderHit::Back : HeaderHit::Menu;
   return HeaderHit::None;

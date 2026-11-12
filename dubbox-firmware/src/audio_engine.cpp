@@ -61,6 +61,22 @@ bool AudioEngine::begin() {
     wetSubMix_.gain(i, 0.0f);  // matches trackFxBypassed_[i]'s default (true)
   }
 
+  // Each record source (0 mic, 1 input 1, 2 input 2) runs through a filter and a gain stage, and
+  // the meter and the recorder both listen after them (see setInputGainDb / setInputFilters).
+  patchInSrc_[0] = new AudioConnection(mic_, 0, inFilter_[0], 0);
+  patchInSrc_[1] = new AudioConnection(lineIn_, 0, inFilter_[1], 0);
+  patchInSrc_[2] = new AudioConnection(lineIn_, 1, inFilter_[2], 0);
+  for (int s = 0; s < kNumInputs; ++s) {
+    patchInGain_[s] = new AudioConnection(inFilter_[s], 0, inGain_[s], 0);
+    applyInput(s);
+  }
+  patchMicPeak_ = new AudioConnection(inGain_[0], 0, micPeak_, 0);
+  patchMicQueue_ = new AudioConnection(inGain_[0], 0, micQueue_, 0);
+  patchLineInPeak_[0] = new AudioConnection(inGain_[1], 0, lineInPeak_[0], 0);
+  patchLineInPeak_[1] = new AudioConnection(inGain_[2], 0, lineInPeak_[1], 0);
+  patchLineQueue_[0] = new AudioConnection(inGain_[1], 0, lineQueue_[0], 0);
+  patchLineQueue_[1] = new AudioConnection(inGain_[2], 0, lineQueue_[1], 0);
+
   delayFeedbackMix_.gain(0, 1.0f);  // owning track's tap, always passes through
   delayFeedbackMix_.gain(1, 0.0f);  // Delay's feedback tap, set by setDelayFeedback()
 
@@ -83,8 +99,21 @@ bool AudioEngine::begin() {
   patchPianoL_ = new AudioConnection(drums_.instrumentOutput(), 0, finalMixL_, 3);
   patchPianoR_ = new AudioConnection(drums_.instrumentOutput(), 0, finalMixR_, 3);
 
+#ifdef DUBBOX_TEST_TONE
+  // An input takes only one source, so the tone is summed in a mixer ahead of the output.
+  testTone_.frequency(1000.0f);
+  testTone_.amplitude(0.0f);  // silent until setTestTone(true) (USB serial 't' toggles it)
+  patchFft_ = new AudioConnection(inGain_[1], 0, fft_, 0);
+  patchOutL_ = new AudioConnection(finalMixL_, 0, testMixL_, 0);
+  patchOutR_ = new AudioConnection(finalMixR_, 0, testMixR_, 0);
+  patchTestToneL_ = new AudioConnection(testTone_, 0, testMixL_, 1);
+  patchTestToneR_ = new AudioConnection(testTone_, 0, testMixR_, 1);
+  patchTestOutL_ = new AudioConnection(testMixL_, 0, out_, 0);
+  patchTestOutR_ = new AudioConnection(testMixR_, 0, out_, 1);
+#else
   patchOutL_ = new AudioConnection(finalMixL_, 0, out_, 0);
   patchOutR_ = new AudioConnection(finalMixR_, 0, out_, 1);
+#endif
 
   // The delay-line buffers are static, so begin() can only be called once (one global engine).
   for (int i = 0; i < kNumTracks; ++i) {
@@ -103,6 +132,8 @@ bool AudioEngine::begin() {
     Serial.println(lastError_);
     return false;
   }
+  codec_.inputSelect(AUDIO_INPUT_LINEIN);
+  codec_.lineInLevel(5);  // the codec's default line-in sensitivity (about 1.3 Vp-p full scale)
   masterVolume_ = kDefaultCodecVolume;
   codec_.volume(kDefaultCodecVolume);
   Serial.printf("Codec enabled OK, headphone volume set to %.0f%%\n",
@@ -366,6 +397,83 @@ float AudioEngine::trackPeakLevel(int trackIndex) {
     lastPeak_[trackIndex] = peak_[trackIndex].read();
   }
   return lastPeak_[trackIndex];
+}
+
+#ifdef DUBBOX_TEST_TONE
+void AudioEngine::printSpectrum() {
+  if (!fft_.available()) return;
+  // 1024-point FFT at 44.1 kHz: 43 Hz per bin. Report the five strongest local maxima above bin 0.
+  float mag[512];
+  for (int i = 0; i < 512; ++i) mag[i] = fft_.read(i);
+  int picked[5] = {-1, -1, -1, -1, -1};
+  for (int n = 0; n < 5; ++n) {
+    int best = -1;
+    for (int i = 1; i < 511; ++i) {
+      if (mag[i] < mag[i - 1] || mag[i] < mag[i + 1]) continue;
+      bool used = false;
+      for (int k = 0; k < n; ++k) used = used || abs(i - picked[k]) < 3;
+      if (!used && (best < 0 || mag[i] > mag[best])) best = i;
+    }
+    picked[n] = best;
+  }
+  float total = 0.0f;
+  for (int i = 1; i < 512; ++i) total += mag[i] * mag[i];
+  Serial.printf("SPEC rms %.4f |", sqrtf(total));
+  for (int n = 0; n < 5; ++n) {
+    if (picked[n] >= 0) Serial.printf(" %.0fHz:%.4f", picked[n] * 44117.0f / 1024.0f, mag[picked[n]]);
+  }
+  Serial.println();
+}
+#endif
+
+namespace {
+// The charge pump on the analog input board leaves a steady tone near 14.5 kHz in the line inputs.
+constexpr float kHumNotchHz = 14476.0f;
+constexpr float kHumNotchQ = 6.0f;
+constexpr float kLowCutHz = 80.0f;
+const int kPassthrough[5] = {1073741824, 0, 0, 0, 0};
+}  // namespace
+
+void AudioEngine::applyInput(int source) {
+  AudioFilterBiquad& f = inFilter_[source];
+  if (inHumNotch_[source]) {
+    f.setNotch(0, kHumNotchHz, kHumNotchQ);
+    f.setNotch(1, kHumNotchHz, kHumNotchQ);
+  } else {
+    f.setCoefficients(0, kPassthrough);
+    f.setCoefficients(1, kPassthrough);
+  }
+  if (inLowCut_[source]) {
+    f.setHighpass(2, kLowCutHz);
+  } else {
+    f.setCoefficients(2, kPassthrough);
+  }
+  f.setCoefficients(3, kPassthrough);
+  inGain_[source].gain(powf(10.0f, inGainDb_[source] / 20.0f));
+}
+
+void AudioEngine::setInputGainDb(int source, float db) {
+  if (source < 0 || source >= kNumInputs) return;
+  inGainDb_[source] = constrain(db, kInputGainMinDb, kInputGainMaxDb);
+  inGain_[source].gain(powf(10.0f, inGainDb_[source] / 20.0f));
+}
+
+void AudioEngine::setInputFilters(int source, bool humNotch, bool lowCut) {
+  if (source < 0 || source >= kNumInputs) return;
+  inHumNotch_[source] = humNotch;
+  inLowCut_[source] = lowCut;
+  applyInput(source);
+}
+
+float AudioEngine::lineInPeakLevel(int channel) {
+  if (channel < 0 || channel > 1) return 0.0f;
+  if (lineInPeak_[channel].available()) lastLineInPeak_[channel] = lineInPeak_[channel].read();
+  return lastLineInPeak_[channel];
+}
+
+float AudioEngine::micPeakLevel() {
+  if (micPeak_.available()) lastMicPeak_ = micPeak_.read();
+  return lastMicPeak_;
 }
 
 float AudioEngine::cpuUsagePercent() { return AudioProcessorUsage(); }

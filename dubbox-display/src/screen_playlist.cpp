@@ -20,8 +20,9 @@ constexpr int kMinClipPx = 12;
 constexpr uint32_t kCropSendIntervalMs = 100;
 constexpr uint32_t kHoldToMoveMs = 350;
 constexpr int kMoveSlopPx = 12;
-constexpr Rect kSnipBtn = {350, 64, 470, 100};
-constexpr Rect kUndoBtn = {480, 64, 600, 100};
+constexpr Rect kSnipBtn = {336, 64, 420, 100};
+constexpr Rect kUndoBtn = {426, 64, 514, 100};
+constexpr Rect kRecBtn = {520, 64, 632, 100};  // the song slider starts at x = 644
 
 uint32_t laneBgRgb(int lane) { return (lane % 2 == 0) ? 0x232323 : 0x2c2c2c; }
 
@@ -280,6 +281,51 @@ void drawUndoButton() {
              rgb565(historyCount > 0 ? 0x1c4f9c : 0x333333));
 }
 
+// What the REC button last showed (state, error initial, elapsed whole seconds), to redraw only on change.
+uint32_t lastRecSig = 0xFFFFFFFFu;
+
+// What REC records: 0 = internal mic, 1 = input 1 (LINE IN L), 2 = input 2 (LINE IN R). Holding the
+// REC button while idle cycles it; a short tap starts / stops the recording.
+int recSource = 0;
+bool recPressed = false;   // a finger is down on the REC button
+bool recHoldDone = false;  // that hold already changed the source, so the release does nothing
+uint32_t recDownMs = 0;
+constexpr uint32_t kRecHoldMs = 600;
+const char* const kRecSourceLabel[3] = {"REC MIC", "REC IN 1", "REC IN 2"};
+
+uint32_t recSig() {
+  const teensylink::Rec& r = teensylink::state().rec;
+  return (uint32_t)r.state * 1000003u + (uint32_t)r.err[0] * 4099u + (r.state == 1 ? r.elapsedMs / 1000 : 0) +
+         (uint32_t)recSource * 7919u;
+}
+
+const char* recErrLabel(const char* err) {
+  if (strcmp(err, "playing") == 0) return "STOP FIRST";
+  if (strcmp(err, "noproject") == 0) return "NO PROJECT";
+  if (strcmp(err, "notrack") == 0) return "NO FREE TRK";
+  if (strcmp(err, "busy") == 0) return "SD BUSY";
+  return "SD ERROR";
+}
+
+void drawRecButton() {
+  const teensylink::Rec& r = teensylink::state().rec;
+  lastRecSig = recSig();
+  char label[16];
+  uint32_t fill = 0x7a1f1f;
+  if (r.state == 1) {
+    uint32_t s = r.elapsedMs / 1000;
+    snprintf(label, sizeof(label), "STOP %lu:%02lu", (unsigned long)(s / 60), (unsigned long)(s % 60));
+    fill = 0xc62828;
+  } else if (r.state == 2) {
+    snprintf(label, sizeof(label), "%s", recErrLabel(r.err));
+    fill = 0x8a4a00;
+  } else {
+    snprintf(label, sizeof(label), "%s", kRecSourceLabel[recSource]);
+  }
+  setCanvas(kVisible);
+  drawButton(kRecBtn, label, fontSmall(), rgb565(0xffffff), rgb565(fill));
+}
+
 void clearSnipPreview() {
   if (snipLane < 0) return;
   bteCopy(kComposed, kVisible, snipX - 3, laneY(snipLane), 7, kLaneH);
@@ -504,10 +550,6 @@ Rect patDelRect() { return {16, kPatLaneTop + 72, 82, kPatLaneTop + 100}; }
 float barMsF() { return 240000.0f / (float)max(1, teensylink::state().drums.bpm); }
 float barPxF() { return pxPerMs() * barMsF(); }
 int xOfBar(int bar) { return kWaveLeft + (int)lroundf((float)bar * barPxF()); }
-int barOfX(int x) {
-  float px = barPxF();
-  return px > 0.0f ? (int)floorf((float)(x - kWaveLeft) / px) : 0;
-}
 
 // Pixel span of pattern clip i, clamped to the lane's drawing area.
 void patClipSpan(int i, int& x1, int& x2) {
@@ -731,9 +773,17 @@ void enter() {
   drawPlayhead();
   drawSnipButton();
   drawUndoButton();
+  drawRecButton();
 }
 
 bool stripButtonDown(int x, int y) {
+  if (inRect(kRecBtn, x, y)) {
+    // Acts on release (touchUp) so a long press can change the source instead.
+    recPressed = true;
+    recHoldDone = false;
+    recDownMs = millis();
+    return true;
+  }
   if (inRect(kSnipBtn, x, y)) {
     snipMode = !snipMode;
     snipEligible = snipMode;  // dragging down from the button into a lane cuts
@@ -865,6 +915,12 @@ void touchMove(int x, int y) {
 
 void touchUp() {
   touching = false;
+  if (recPressed) {
+    recPressed = false;
+    if (!recHoldDone && g.linked) {
+      teensylink::sendRecord(teensylink::state().rec.state != 1, recSource);
+    }
+  }
   if (snipEligible) {
     if (snipMode && snipLane >= 0 && g.linked) {
       const Track& st = tracks[snipLane];
@@ -997,6 +1053,11 @@ void update(bool visible) {
   if (redrew && visible) drawPlayhead();
 
   if (visible) {
+    if (recPressed && !recHoldDone && teensylink::state().rec.state != 1 && now - recDownMs >= kRecHoldMs) {
+      recSource = (recSource + 1) % 3;  // hold the button to step through MIC / IN 1 / IN 2
+      recHoldDone = true;
+    }
+    if (recSig() != lastRecSig) drawRecButton();
     if (dragTrack >= 0 && now - lastDragDrawMs >= 30) {
       lastDragDrawMs = now;
       flushDirtyLanes();

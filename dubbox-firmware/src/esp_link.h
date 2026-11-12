@@ -2,6 +2,8 @@
 #include <Arduino.h>
 
 #include "audio_engine.h"
+#include "input_manager.h"
+#include "mic_recorder.h"
 #include "project.h"
 #include "waveform.h"
 
@@ -32,7 +34,20 @@ namespace dubbox {
 //                                  cutoff,resonance,chorus,reverb,level), on change / every 2 s
 //   u,<row0>,<row1>,<row2>,<row3>,<padMode 0=drums 1=piano>,<note0>,<note1>,<note2>,<note3>
 //                                  what the 4 pads play (drum row or -1; MIDI note), on change / every 2 s
+//   K,<state 0=idle 1=recording 2=error>,<elapsedMs>,<levelPermille>,<source>,<err or ->
+//                                  recorder status: ~7 Hz while recording, on change / every 2 s otherwise.
+//                                  source: 0 = internal mic, 1 = input 1 (LINE IN L), 2 = input 2 (LINE IN R)
+//                                  err: playing | noproject | notrack | busy | sd
+//   X,<gain0>,<flags0>,<gain1>,<flags1>,<gain2>,<flags2>
+//                                  input settings for mic / input 1 / input 2: gain in tenths of a dB,
+//                                  flags bit0 = 14.5 kHz notch, bit1 = 80 Hz low cut; on change / every 2 s
+//   Y,<mic>,<in1>,<in2>            input levels in permille (after gain), ~8 Hz while metering is on (p,1)
 // ESP32 -> Teensy:
+//   J,<0/1>[,<source>]             stop / start recording to the first empty track (transport must be
+//                                  stopped); source as in K (default 0, the internal mic). While recording,
+//                                  P/T/R/N/O/Q/D/S/B/Z are ignored.
+//   F,<source>,<gainTenthsDb>,<flags>   set one input's gain and filters (same units as X)
+//   p,<0/1>                        input level metering (Y lines) off / on
 //   H                              hello: resend everything (waveforms included)
 //   P                              toggle play/pause
 //   Z                              rewind to start
@@ -63,6 +78,8 @@ namespace dubbox {
 //   c,<pattern>,<inst>             clear an instrument's notes in a pattern
 //   t,<inst>,<midi>                play a note briefly (keyboard feedback)
 //   k,<pad>[,<0/1>]                press (1, default) or release (0) a drum pad (0-3) as if it were the physical one
+//   y,<row>                        play one drum row right now (used by the ESP32's USB-MIDI bridge for
+//                                  channel-10 notes; unrelated to the Teensy->ESP32 'y' below)
 //   g,<inst>,<14 settings>         set an instrument's whole patch (same order as above)
 //   e,<midi>                       a finger is holding this piano key (-1 = released): the next pad press routes
 //                                  it (piano pad mode), resent while held like h
@@ -95,6 +112,9 @@ namespace dubbox {
 class EspLink {
  public:
   void begin(ProjectManager* projects);
+  void setRecorder(MicRecorder* recorder) { recorder_ = recorder; }
+  // The raw controls, streamed to the display's CONTROLS TEST screen while it asks (`#,1`, then `#,0`).
+  void setInput(InputManager* input) { input_ = input; }
   void update(AudioEngine& engine, const float faders[kNumTracks]);
   // True while a WiFi upload is writing to the SD card (the card must not be shared with MTP or playback).
   bool uploading() const;
@@ -104,6 +124,9 @@ class EspLink {
   void clearWaveform(int track);
   // Beat grid found for a track (BeatInfo{} = none); queued for sending.
   void setBeats(int track, const BeatInfo& beats);
+
+  // Bench/debug: runs one link command as if the ESP32 had sent it (used by the USB '>' test hook in main.cpp).
+  void injectLine(AudioEngine& engine, const char* line) { handleLine(engine, line); }
 
  private:
   void handleLine(AudioEngine& engine, const char* line);
@@ -129,6 +152,15 @@ class EspLink {
   int fileCount_ = 0;  // -1 = busy (playing)
 
   ProjectManager* projects_ = nullptr;
+  MicRecorder* recorder_ = nullptr;
+  uint32_t lastRecMs_ = 0;
+  uint32_t lastRecSig_ = 0;
+  bool inputMeters_ = false;  // the display is on its Input screen and wants live levels
+  uint32_t lastInputMeterMs_ = 0;
+  InputManager* input_ = nullptr;
+  bool controlsStream_ = false;  // the display is on its CONTROLS TEST screen and wants raw control states
+  uint32_t lastControlsMs_ = 0;
+  char lastInputLine_[72] = {0};
   bool listPending_ = true;
   int listSendIndex_ = 0;
   int listCount_ = 0;
@@ -137,7 +169,7 @@ class EspLink {
   int lastVolume_ = -1;
   char lastName_[kProjectNameMax + 1] = {0};
 
-  char rx_[80];
+  char rx_[160];
   size_t rxLen_ = 0;
   uint32_t lastStateMs_ = 0;
   uint32_t lastMixMs_ = 0;

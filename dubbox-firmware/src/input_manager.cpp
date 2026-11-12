@@ -36,6 +36,7 @@ void InputManager::begin() {
     fxSelectButtons_[i].attach(pins::kFxSelectButton[i], INPUT_PULLUP);
     fxSelectButtons_[i].interval(kButtonDebounceMs);
   }
+
   for (int i = 0; i < kNumDrumPadButtons; ++i) {
     drumPadButtons_[i].attach(pins::kDrumPadButton[i], INPUT_PULLUP);
     drumPadButtons_[i].interval(kButtonDebounceMs);
@@ -53,14 +54,18 @@ void InputManager::update() {
   for (int i = 0; i < kNumEncoders; ++i) {
     encoderButtons_[i].update();
   }
-  for (int i = 0; i < kNumFxSelectButtons; ++i) {
-    fxSelectButtons_[i].update();
-    fxSelectJustPressed_[i] = fxSelectButtons_[i].fell();
-  }
+  updateFxSelectButtons();
   for (int i = 0; i < kNumDrumPadButtons; ++i) {
     drumPadButtons_[i].update();
     drumPadJustPressed_[i] = drumPadButtons_[i].fell();
     drumPadJustReleased_[i] = drumPadButtons_[i].rose();
+  }
+}
+
+void InputManager::updateFxSelectButtons() {
+  for (int i = 0; i < kNumFxSelectButtons; ++i) {
+    fxSelectButtons_[i].update();
+    fxSelectJustPressed_[i] = fxSelectButtons_[i].fell();
   }
 }
 
@@ -93,6 +98,19 @@ bool InputManager::drumPadPressed(int index) const {
 
 bool InputManager::drumPadReleased(int index) const {
   return drumPadJustReleased_[index];
+}
+
+int32_t InputManager::encoderDetents(int encoderIndex) {
+  return encoders_[encoderIndex]->read() / kEncoderCountsPerDetent;
+}
+
+bool InputManager::fxSelectHeld(int index) const {
+  return fxSelectButtons_[index].read() == LOW;
+}
+
+bool InputManager::drumPadHeld(int index) const {
+  // INPUT_PULLUP: LOW means the button is currently pressed.
+  return drumPadButtons_[index].read() == LOW;
 }
 
 }  // namespace dubbox

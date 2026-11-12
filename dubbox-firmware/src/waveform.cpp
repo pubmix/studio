@@ -83,7 +83,6 @@ FLASHMEM bool openWavData(const char* filename, WavStream& out) {
   return true;
 }
 
-constexpr size_t kReadBufBytes = 512;
 
 }  // namespace
 

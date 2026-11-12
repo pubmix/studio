@@ -1,5 +1,7 @@
 # Dub-Box firmware
 
+> **Picking this project up on another machine or AI session? Start with [HANDOFF.md](HANDOFF.md)** (current state, wiring, build/flash steps, debugging aids, known problems).
+
 Teensy 4.1 firmware for the Dub-Box hardware 4-track DAW. The Teensy runs the audio engine
 and the physical controls; the touchscreen UI runs on a separate ESP32 board
 (`../dubbox-display`) connected over UART.

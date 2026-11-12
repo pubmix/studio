@@ -42,7 +42,8 @@ class ProjectManager {
   const char* name() const { return name_; }
 
   // Call every loop: debounced autosave of crop changes.
-  void update();
+  // `sdBusy`: another SD writer (recording, upload, background scan) is active, so defer the autosave.
+  void update(bool sdBusy = false);
 
   // Bitmask of tracks whose loaded file changed since the last call.
   uint8_t takeLoadedMask();

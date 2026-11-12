@@ -22,10 +22,11 @@ constexpr unsigned long kVisible = 0;
 constexpr unsigned long kBright = 1843200;
 constexpr unsigned long kDim = 3686400;
 constexpr unsigned long kComposed = 5529600;
+constexpr unsigned long kStaging = 7372800;  // hidden layer a whole new screen is drawn into, then copied over
 
 constexpr uint32_t kTrackRgb[kNumTracks] = {0x3d7fff, 0xff9f3d, 0x7fff3d, 0xff3d7f};
 
-enum class Screen { Menu, NewProject, LoadProject, Mixer, Playlist, Pattern, FilePicker, Wifi };
+enum class Screen { Menu, NewProject, LoadProject, Mixer, Playlist, Pattern, Input, FilePicker, Wifi, Midi, Bluetooth, Controls };
 
 struct Shared {
   bool linked = false;
@@ -50,6 +51,11 @@ uint16_t rgb565(uint32_t rgb, float scale = 1.0f);
 void setCanvas(unsigned long layerAddr);
 void fillRect(int lx1, int ly1, int lx2, int ly2, uint16_t color);
 void bteCopy(unsigned long src, unsigned long dst, int lx, int ly, int lw, int lh);
+// Flicker-free screen change: between begin and present, everything drawn to (or copied to / from) the
+// visible layer goes to the hidden staging layer instead; present copies the finished screen over in one
+// step, so the panel never shows a black or half-drawn frame.
+void beginStagedDraw();
+void presentStagedDraw();
 
 const GFXfont* fontSmall();  // 12 pt bold
 const GFXfont* fontLarge();  // 18 pt bold
@@ -60,11 +66,11 @@ void drawText(int x, int yTop, const char* s, const GFXfont* f, uint16_t fg, uin
 void drawButton(const Rect& r, const char* label, const GFXfont* f, uint16_t fg, uint16_t fill);
 
 // Header bar: DUB-BOX and a title on the left, link tag and volume slider in the middle, and on
-// the right either the three coloured tabs (MIXER / PLAYLIST / PATTERN, `activeTab` lit) plus a
+// the right either the four coloured tabs (MIXER / PLAYLIST / PATTERN / INPUT, `activeTab` lit) plus a
 // MENU button, or, with `activeTab` < 0, a single button labelled `buttonLabel` ("BACK" reports
 // HeaderHit::Back, anything else HeaderHit::Menu; nullptr = no button).
-enum class HeaderHit { None, TabMixer, TabPlaylist, TabPattern, Menu, Back, Volume };
-enum Tab { kTabMixer = 0, kTabPlaylist = 1, kTabPattern = 2 };
+enum class HeaderHit { None, TabMixer, TabPlaylist, TabPattern, TabInput, Menu, Back, Volume };
+enum Tab { kTabMixer = 0, kTabPlaylist = 1, kTabPattern = 2, kTabInput = 3 };
 void drawHeader(const char* title, int activeTab, const char* buttonLabel = nullptr);
 HeaderHit headerHit(int x, int y);
 void drawLinkTag();

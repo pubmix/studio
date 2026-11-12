@@ -33,7 +33,7 @@ class AudioEngine {
   const char* trackFilename(int trackIndex) const {
     return trackFilenames_[trackIndex][0] == '\0' ? nullptr : trackFilenames_[trackIndex];
   }
-  static constexpr int kMaxFilenameLen = 64;
+  static constexpr int kMaxFilenameLen = 128;
   // Length of the loaded file in ms (0 until the player has parsed the WAV header, which
   // takes a few audio blocks after loadTrack()).
   uint32_t trackLengthMillis(int trackIndex);
@@ -108,6 +108,46 @@ class AudioEngine {
   // Audio-reactive peak level 0.0-1.0, tapped pre-fader off the track's own signal. The last
   // known value is kept in between AudioAnalyzePeak updates, so it can be polled every loop.
   float trackPeakLevel(int trackIndex);
+  // Internal I2S mic (ICS-43434 on I2S2, left slot), 0.0-1.0 peak since the last call. Not
+  // routed to the output: the mic sits next to the speakers, so monitoring it would feed back.
+  float micPeakLevel();
+  // The shield's LINE IN (left = input 1, right = input 2), 0.0-1.0 peak since the last call. Only
+  // metered for now: the mic/instrument preamps feed this input, and nothing is routed to the output yet.
+  float lineInPeakLevel(int channel);
+#ifdef DUBBOX_TEST_TONE
+  // Bench only: 1 kHz tone into the stereo output for testing the input preamps.
+  void setTestTone(bool on) { testTone_.amplitude(on ? 0.04f : 0.0f); }
+  // Bench only: test tone level 0.0-1.0 (the pan test uses a bit more than the 0.04 above so small speakers are audible).
+  void setTestToneLevel(float level) { testTone_.amplitude(level); }
+  // Bench only: pan the test tone between the outputs: -1 = left only, 0 = both (equal power), +1 = right only.
+  void setTestPan(float pan) {
+    float angle = (constrain(pan, -1.0f, 1.0f) + 1.0f) * 0.7853982f;  // 0 .. pi/2
+    testMixL_.gain(1, cosf(angle));
+    testMixR_.gain(1, sinf(angle));
+  }
+  // Bench only: prints the strongest spectral peaks of input 1 (LINE IN L); call about once a second.
+  void printSpectrum();
+#endif
+  // Per-source input processing, ahead of the meter and the recorder. Sources: 0 = internal mic,
+  // 1 = input 1 (LINE IN L), 2 = input 2 (LINE IN R). Gain is digital; the filters are the
+  // 14.5 kHz notch that removes the charge-pump tone and an 80 Hz low cut.
+  static constexpr int kNumInputs = 3;
+  static constexpr float kInputGainMinDb = -30.0f;
+  static constexpr float kInputGainMaxDb = 30.0f;
+  void setInputGainDb(int source, float db);
+  void setInputFilters(int source, bool humNotch, bool lowCut);
+  float inputGainDb(int source) const { return inGainDb_[source]; }
+  bool inputHumNotch(int source) const { return inHumNotch_[source]; }
+  bool inputLowCut(int source) const { return inLowCut_[source]; }
+  // Raw mic blocks (128 mono samples each) for the recorder; see MicRecorder.
+  // Record sources: 0 = internal mic, 1 = input 1 (LINE IN L), 2 = input 2 (LINE IN R); all mono.
+  AudioRecordQueue& recordQueue(int source) {
+    return source == 0 ? micQueue_ : lineQueue_[source == 2 ? 1 : 0];
+  }
+  // Peak level of a record source, 0.0-1.0 (the same polling rules as micPeakLevel()).
+  float recordSourcePeak(int source) {
+    return source == 0 ? micPeakLevel() : lineInPeakLevel(source == 2 ? 1 : 0);
+  }
   // The Audio Library's DSP load, 0-100%, and the peak since the last reset.
   float cpuUsagePercent();
   float cpuUsagePercentMax();
@@ -190,6 +230,32 @@ class AudioEngine {
   // Peak metering, tapped straight off each player (pre-fader, pre-fx).
   AudioAnalyzePeak peak_[kNumTracks];
   float lastPeak_[kNumTracks] = {0.0f, 0.0f, 0.0f, 0.0f};
+
+  // LINE IN comes back from the codec's ADC over I2S1's receive pin (Teensy pin 8).
+  AudioInputI2S lineIn_;
+  AudioAnalyzePeak lineInPeak_[2];
+  AudioConnection* patchLineInPeak_[2] = {nullptr, nullptr};
+  float lastLineInPeak_[2] = {0.0f, 0.0f};
+  AudioFilterBiquad inFilter_[kNumInputs];
+  AudioAmplifier inGain_[kNumInputs];
+  AudioConnection* patchInSrc_[kNumInputs] = {nullptr, nullptr, nullptr};
+  AudioConnection* patchInGain_[kNumInputs] = {nullptr, nullptr, nullptr};
+  float inGainDb_[kNumInputs] = {0.0f, 0.0f, 0.0f};
+  bool inHumNotch_[kNumInputs] = {false, true, true};  // on for the line inputs by default
+  bool inLowCut_[kNumInputs] = {false, false, false};
+  void applyInput(int source);
+  AudioRecordQueue lineQueue_[2];  // idle until the recorder calls begin() on one
+  AudioConnection* patchLineQueue_[2] = {nullptr, nullptr};
+
+  // Internal mic: the Teensy drives I2S2's clocks (BCLK 4, LRCLK 3) and reads data on pin 5.
+  // Constructing AudioInputI2S2 also muxes pin 33 to SAI2_MCLK; InputManager::begin() runs
+  // later and pinMode()s pin 33 back to GPIO for encoder 1.
+  AudioInputI2S2 mic_;
+  AudioAnalyzePeak micPeak_;
+  AudioConnection* patchMicPeak_ = nullptr;
+  AudioRecordQueue micQueue_;
+  AudioConnection* patchMicQueue_ = nullptr;
+  float lastMicPeak_ = 0.0f;
 
   // Clips: file windows and timeline offsets. An end of 0xFFFFFFFF means "no limit yet".
   uint32_t clipStart_[kNumTracks][kMaxClips] = {{0}};
@@ -303,6 +369,18 @@ class AudioEngine {
   AudioConnection* patchWetSubToFinalR_ = nullptr;
   AudioConnection* patchOutL_ = nullptr;
   AudioConnection* patchOutR_ = nullptr;
+#ifdef DUBBOX_TEST_TONE
+  // Bench-test signal for the instrument-input preamp: summed into the stereo output.
+  AudioSynthWaveformSine testTone_;
+  AudioMixer4 testMixL_;
+  AudioMixer4 testMixR_;
+  AudioAnalyzeFFT1024 fft_;
+  AudioConnection* patchFft_ = nullptr;
+  AudioConnection* patchTestToneL_ = nullptr;
+  AudioConnection* patchTestToneR_ = nullptr;
+  AudioConnection* patchTestOutL_ = nullptr;
+  AudioConnection* patchTestOutR_ = nullptr;
+#endif
 
   // Delay's plumbing, rewired whenever ownership changes. Delay is only ever the primary slot,
   // so its upstream is always the owner's player; patchDelayOut_ goes to the owner's wetSubMix_

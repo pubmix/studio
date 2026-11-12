@@ -128,13 +128,21 @@ void AudioPlaySdWavSeekable::togglePlayPause(void) {
 	// state is explicitly STATE_STOP
 	if(state_play >= 8 || state == STATE_STOP) return;
 
+	// The audio interrupt can set state = STATE_STOP at end of file between the read and the write
+	// below, which would leave the player PAUSED with its file closed: keep the update from running.
+	const bool irq = NVIC_IS_ENABLED(IRQ_SOFTWARE);
+	if (irq) NVIC_DISABLE_IRQ(IRQ_SOFTWARE);
+	if(state == STATE_STOP) {
+		// already finished: nothing to toggle
+	}
 	// toggle back and forth between state_play and STATE_PAUSED
-	if(state == state_play) {
+	else if(state == state_play) {
 		state = STATE_PAUSED;
 	}
 	else if(state == STATE_PAUSED) {
 		state = state_play;
 	}
+	if (irq) NVIC_ENABLE_IRQ(IRQ_SOFTWARE);
 }
 
 // ADDED: not present in upstream AudioPlaySdWav.
@@ -200,8 +208,6 @@ void AudioPlaySdWavSeekable::update(void)
 		block_right = NULL;
 	}
 	block_offset = 0;
-
-	//Serial.println("update");
 
 	// is there buffered data?
 	n = buffer_length - buffer_offset;

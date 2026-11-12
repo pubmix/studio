@@ -7,10 +7,15 @@
 #include "screen_picker.h"
 #include "screen_mixer.h"
 #include "screen_pattern.h"
+#include "screen_input.h"
+#include "screen_bluetooth.h"
+#include "screen_controls.h"
+#include "screen_midi.h"
 #include "screen_wifi.h"
 #include "screen_playlist.h"
 #include "teensy_link.h"
 #include "touch_gt911.h"
+#include "debug_log.h"
 #include "ui_common.h"
 
 namespace ui {
@@ -88,8 +93,20 @@ void drawHeaderFor(Screen s) {
     case Screen::Pattern:
       drawHeader(project, kTabPattern);
       break;
+    case Screen::Input:
+      drawHeader(project, kTabInput);
+      break;
     case Screen::Wifi:
       drawHeader("WIFI UPLOAD", -1, "MENU");
+      break;
+    case Screen::Midi:
+      drawHeader("USB MIDI", -1, "MENU");
+      break;
+    case Screen::Bluetooth:
+      drawHeader("BLUETOOTH", -1, "MENU");
+      break;
+    case Screen::Controls:
+      drawHeader("CONTROLS TEST", -1, "MENU");
       break;
     case Screen::FilePicker: {
       char title[24];
@@ -105,14 +122,18 @@ void goTo(Screen s) {
     if (current == Screen::Mixer) mixer::touchUp();
     if (current == Screen::Playlist) playlist::touchUp();
     if (current == Screen::Pattern) pattern::touchUp();
+    if (current == Screen::Input) inputscreen::touchUp();
   }
   if (current == Screen::Pattern && s != Screen::Pattern) pattern::leave();
+  if (current == Screen::Input && s != Screen::Input) inputscreen::leave();
+  if (current == Screen::Controls && s != Screen::Controls) controlsscreen::leave();
   if (s == Screen::Menu) {
     // Being on the menu means no project is open: stop playback and close it.
     shownProject[0] = '\0';
     if (g.linked) teensylink::sendCloseProject();
   }
   current = s;
+  beginStagedDraw();  // build the whole screen off-screen, then show it in one step (no black flash)
   setCanvas(kVisible);
   fillRect(0, 0, kW - 1, kH - 1, rgb565(0x000000));
   drawHeaderFor(s);
@@ -138,13 +159,26 @@ void goTo(Screen s) {
       drawTransport(true);
       pattern::enter();
       break;
+    case Screen::Input:
+      inputscreen::enter();
+      break;
     case Screen::FilePicker:
       picker::enter(picker::track());
       break;
     case Screen::Wifi:
       wifiscreen::enter();
       break;
+    case Screen::Midi:
+      midiscreen::enter();
+      break;
+    case Screen::Bluetooth:
+      btscreen::enter();
+      break;
+    case Screen::Controls:
+      controlsscreen::enter();
+      break;
   }
+  presentStagedDraw();
   wasPlayingDrawn = g.playing;
   wasPreviewDrawn = drumTransportState();
 }
@@ -186,6 +220,9 @@ void onTouchDown(int x, int y) {
         break;
       case HeaderHit::TabPattern:
         if (current != Screen::Pattern) goTo(Screen::Pattern);
+        break;
+      case HeaderHit::TabInput:
+        if (current != Screen::Input) goTo(Screen::Input);
         break;
       case HeaderHit::Menu:
         goTo(Screen::Menu);
@@ -299,8 +336,20 @@ void onTouchDown(int x, int y) {
     case Screen::Pattern:
       pattern::touchDown(x, y);
       break;
+    case Screen::Input:
+      inputscreen::touchDown(x, y);
+      break;
     case Screen::Wifi:
       wifiscreen::touchDown(x, y);
+      break;
+    case Screen::Midi:
+      midiscreen::touchDown(x, y);
+      break;
+    case Screen::Bluetooth:
+      btscreen::touchDown(x, y);
+      break;
+    case Screen::Controls:
+      controlsscreen::touchDown(x, y);
       break;
     case Screen::FilePicker: {
       picker::Action a = picker::touchDown(x, y);
@@ -329,6 +378,7 @@ void onTouchMove(int x, int y) {
   if (current == Screen::Mixer) mixer::touchMove(x, y);
   if (current == Screen::Playlist) playlist::touchMove(x, y);
   if (current == Screen::Pattern) pattern::touchMove(x, y);
+  if (current == Screen::Input) inputscreen::touchMove(x, y);
 }
 
 void onTouchUp() {
@@ -338,6 +388,7 @@ void onTouchUp() {
     if (current == Screen::Mixer) mixer::touchUp();
     if (current == Screen::Playlist) playlist::touchUp();
     if (current == Screen::Pattern) pattern::touchUp();
+    if (current == Screen::Input) inputscreen::touchUp();
   }
   touchOwner = Owner::None;
 }
@@ -347,13 +398,15 @@ void updateLink(uint32_t now) {
   bool nowLinked = teensylink::connected();
   if (nowLinked != g.linked) {
     g.linked = nowLinked;
-    Serial.printf("link %s\n", g.linked ? "UP" : "DOWN");
+    dbg::printf("link %s\n", g.linked ? "UP" : "DOWN");
     drawLinkTag();
     if (g.linked) {
       teensylink::sendHello();
       // The menu means "no project open" — make the Teensy agree after any reset.
       if (current == Screen::Menu) teensylink::sendCloseProject();
       if (current == Screen::LoadProject) loadscreen::enter();
+      if (current == Screen::Input) teensylink::sendInputMeters(true);  // the Teensy forgot after a reset
+      if (current == Screen::Controls) teensylink::sendControlsStream(true);
     } else if (current == Screen::LoadProject) {
       loadscreen::refresh();
     }
@@ -375,7 +428,7 @@ void updateLink(uint32_t now) {
 
   if (teensylink::takeProjectChanged()) {
     const teensylink::ProjectInfo& p = teensylink::state().project;
-    if (p.open && inProject(current) && strcmp(shownProject, p.name) != 0) {
+    if (p.open && (inProject(current) || current == Screen::Input) && strcmp(shownProject, p.name) != 0) {
       strncpy(shownProject, p.name, sizeof(shownProject) - 1);
       drawHeaderFor(current);
     }
@@ -389,7 +442,7 @@ void updateLink(uint32_t now) {
 void begin() {
   uint32_t t0 = millis();
   playlist::init();
-  Serial.printf("ui art built in %lu ms\n", (unsigned long)(millis() - t0));
+  dbg::printf("ui art built in %lu ms\n", (unsigned long)(millis() - t0));
   goTo(Screen::Menu);
 }
 
@@ -402,7 +455,7 @@ void update() {
     lastStatsMs = now;
     uint32_t lines = 0, maxGap = 0;
     teensylink::takeLinkStats(lines, maxGap);
-    Serial.printf("linkstats: %lu state lines / 5s, max gap %lu ms, uptime %lu s\n",
+    dbg::printf("linkstats: %lu state lines / 5s, max gap %lu ms, uptime %lu s\n",
                   (unsigned long)lines, (unsigned long)maxGap, (unsigned long)(now / 1000));
   }
 
@@ -436,7 +489,11 @@ void update() {
   playlist::update(current == Screen::Playlist);
   mixer::update(current == Screen::Mixer);
   pattern::update(current == Screen::Pattern);
+  inputscreen::update(current == Screen::Input);
   if (current == Screen::Wifi) wifiscreen::update();
+  if (current == Screen::Midi) midiscreen::update();
+  if (current == Screen::Bluetooth) btscreen::update();
+  controlsscreen::update(current == Screen::Controls);
 
   if (inProject(current)) {
     int previewNow = drumTransportState();

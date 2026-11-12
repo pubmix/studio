@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "bt_audio.h"
 #include "ui_common.h"
 #include "wifi_upload.h"
 
@@ -14,6 +15,7 @@ using namespace ui;
 
 enum class View { Status, Scan, Keys };
 View view = View::Status;
+bool blockedByBluetooth = false;  // WiFi is held off while Bluetooth is on (see btaudio::setActive)
 
 // ---- Status view ----
 constexpr Rect kChoose = {60, 392, 470, 472};
@@ -56,7 +58,6 @@ int page = 0;
 bool typingSsid = false;  // first the name (manual entry), then the password
 char ssidBuf[kMaxSsid + 1];
 char passBuf[kMaxPass + 1];
-int fieldLen = 0;
 
 char* field() { return typingSsid ? ssidBuf : passBuf; }
 int fieldMax() { return typingSsid ? kMaxSsid : kMaxPass; }
@@ -376,11 +377,24 @@ void keysTouch(int x, int y) {
 
 void enter() {
   view = View::Status;
+  blockedByBluetooth = btaudio::active();
+  if (blockedByBluetooth) {
+    ui::setCanvas(ui::kVisible);
+    ui::fillRect(0, 61, ui::kW - 1, ui::kH - 1, ui::rgb565(0x000000));
+    ui::drawText(60, 120, "WIFI UPLOAD IS OFF WHILE BLUETOOTH IS ON", ui::fontLarge(), ui::rgb565(0xffffff),
+                 ui::rgb565(0x000000), 1160);
+    ui::drawText(60, 190, "Bluetooth and WiFi share one radio and the display's memory, so only one runs at a time.",
+                 ui::fontSmall(), ui::rgb565(0xdddddd), ui::rgb565(0x000000), 1160);
+    ui::drawText(60, 226, "To upload over WiFi: open the BLUETOOTH screen and turn Bluetooth off (the display restarts).",
+                 ui::fontSmall(), ui::rgb565(0xdddddd), ui::rgb565(0x000000), 1160);
+    return;
+  }
   drawStatusStatic();
   refreshStatus();
 }
 
 void touchDown(int x, int y) {
+  if (blockedByBluetooth) return;
   switch (view) {
     case View::Status:
       if (inRect(kChoose, x, y)) {
@@ -420,6 +434,7 @@ void touchDown(int x, int y) {
 }
 
 void update() {
+  if (blockedByBluetooth) return;
   if (view == View::Status) {
     refreshStatus();
   } else if (view == View::Scan) {

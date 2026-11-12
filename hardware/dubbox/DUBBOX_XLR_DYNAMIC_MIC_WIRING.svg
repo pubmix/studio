@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 680 400" role="img">
+<title>Dub-Box XLR dynamic mic wiring into the INA163</title>
+<desc>XLR terminals 1 and G go to ground. XLR 2 hot goes through a 33 microfarad capacitor and a 47 ohm resistor to INA163 pin 5. XLR 3 cold goes the same way to pin 4. Each input has a 2.2 kilohm bias resistor to ground after the capacitor.</desc>
+<style>
+:root{--s:#5F5E5A}
+svg{background:#fff;font-family:Arial,Helvetica,sans-serif}
+.ts{font-size:12px;fill:#444441}
+.th{font-size:14px;font-weight:700;fill:#2C2C2A}
+.box{fill:#F1EFE8;stroke:#888780}
+.ic{fill:#EEEDFE;stroke:#534AB7}
+.icl{font-size:12px;fill:#534AB7}
+.ich{font-size:14px;font-weight:700;fill:#3C3489}
+.w{fill:none;stroke:#1D9E75;stroke-width:1.2}
+.g{fill:none;stroke:#5F5E5A;stroke-width:1.2}
+</style>
+
+<text class="th" x="14" y="18" dominant-baseline="central">Channel 1: XLR input for a dynamic mic</text>
+
+<rect class="box" x="14" y="44" width="136" height="214" rx="8" stroke-width="0.5"/>
+<text class="th" x="82" y="60" text-anchor="middle" dominant-baseline="central">Combo jack</text>
+<text class="ts" x="142" y="110" text-anchor="end" dominant-baseline="central">XLR 3 (cold)</text>
+<text class="ts" x="142" y="170" text-anchor="end" dominant-baseline="central">XLR 2 (hot)</text>
+<text class="ts" x="142" y="220" text-anchor="end" dominant-baseline="central">XLR 1</text>
+<text class="ts" x="142" y="246" text-anchor="end" dominant-baseline="central">XLR G</text>
+
+<!-- cold leg: XLR 3 to pin 4 -->
+<path class="w" d="M150 110 H190"/>
+<rect class="box" x="190" y="101" width="44" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="212" y="110" text-anchor="middle" dominant-baseline="central">33µF</text>
+<text class="ts" x="186" y="98" text-anchor="end" dominant-baseline="central">+</text>
+<path class="w" d="M234 110 H310"/>
+<rect class="box" x="310" y="101" width="40" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="330" y="110" text-anchor="middle" dominant-baseline="central">47Ω</text>
+<path class="w" d="M350 110 H430"/>
+<circle cx="272" cy="110" r="2.5" fill="#1D9E75"/>
+<path class="w" d="M272 110 V84"/>
+<rect class="box" x="263" y="52" width="18" height="32" rx="3" stroke-width="0.5"/>
+<text class="ts" x="289" y="68" dominant-baseline="central">2.2k</text>
+<path class="w" d="M272 52 V44"/>
+<text class="ts" x="272" y="34" text-anchor="middle" dominant-baseline="central">GND</text>
+
+<!-- hot leg: XLR 2 to pin 5 -->
+<path class="w" d="M150 170 H190"/>
+<rect class="box" x="190" y="161" width="44" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="212" y="170" text-anchor="middle" dominant-baseline="central">33µF</text>
+<text class="ts" x="186" y="158" text-anchor="end" dominant-baseline="central">+</text>
+<path class="w" d="M234 170 H310"/>
+<rect class="box" x="310" y="161" width="40" height="18" rx="3" stroke-width="0.5"/>
+<text class="ts" x="330" y="170" text-anchor="middle" dominant-baseline="central">47Ω</text>
+<path class="w" d="M350 170 H430"/>
+<circle cx="272" cy="170" r="2.5" fill="#1D9E75"/>
+<path class="w" d="M272 170 V196"/>
+<rect class="box" x="263" y="196" width="18" height="32" rx="3" stroke-width="0.5"/>
+<text class="ts" x="289" y="212" dominant-baseline="central">2.2k</text>
+<path class="w" d="M272 228 V240"/>
+<text class="ts" x="272" y="252" text-anchor="middle" dominant-baseline="central">GND</text>
+
+<!-- grounds -->
+<path class="g" d="M150 220 H190"/>
+<text class="ts" x="196" y="220" dominant-baseline="central">GND</text>
+<path class="g" d="M150 246 H190"/>
+<text class="ts" x="196" y="246" dominant-baseline="central">GND</text>
+
+<!-- INA163 -->
+<rect class="ic" x="430" y="76" width="130" height="124" rx="8" stroke-width="0.5"/>
+<text class="ich" x="495" y="150" text-anchor="middle" dominant-baseline="central">INA163</text>
+<text class="icl" x="438" y="110" dominant-baseline="central">4 VIN−</text>
+<text class="icl" x="438" y="170" dominant-baseline="central">5 VIN+</text>
+<text class="ts" x="495" y="216" text-anchor="middle" dominant-baseline="central">rest unchanged: RG 113 Ω,</text>
+<text class="ts" x="495" y="232" text-anchor="middle" dominant-baseline="central">supply, output via 1k</text>
+
+<text class="th" x="14" y="286" dominant-baseline="central">What changes from the bench test</text>
+<text class="ts" x="14" y="306" dominant-baseline="central">Remove the 43k and the LINE OUT L tone wire from the VIN+ capacitor.</text>
+<text class="ts" x="14" y="322" dominant-baseline="central">Remove the ground wire from the VIN− capacitor: XLR 3 now drives it.</text>
+<text class="ts" x="14" y="338" dominant-baseline="central">XLR 2 (hot) goes to pin 5 and XLR 3 (cold) goes to pin 4. Do not swap them.</text>
+<text class="ts" x="14" y="354" dominant-baseline="central">The 33µF + leg faces the jack. XLR 1 and G both go to the same GND.</text>
+<text class="ts" x="14" y="370" dominant-baseline="central">No phantom power: dynamic mics only. A condenser mic will not work.</text>
+</svg>

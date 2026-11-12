@@ -8,6 +8,10 @@ Own the physical instrument: schematics, PCB layouts, enclosure and mechanical d
 
 This area is reserved for hardware design work. Exact display, codec, controls and headphone wiring remain undecided. No schematic, PCB or tested hardware implementation is claimed here.
 
+## Dub-Box prototype
+
+Wiring drawings, the analog input stage and the protoboard layout tool for the Dub-Box prototype are in [dubbox](dubbox/README.md).
+
 ## Related components
 
 - [Firmware](../firmware/README.md): board adapters and real-time operation.

@@ -23,6 +23,9 @@ uint8_t g_changedBeats = 0;
 bool g_beatMaskChanged = false;
 bool g_songChanged = false;
 bool g_mixerChanged = false;
+bool g_inputChanged = false;
+bool g_inputLevelChanged = false;
+bool g_controlsChanged = false;
 bool g_projectChanged = false;
 bool g_listChanged = false;
 bool g_filesChanged = false;
@@ -391,6 +394,53 @@ void handleLine(const char* line) {
     case 'J':
       handleProject(line);
       break;
+    case 'X': {
+      int g[kNumInputs] = {0}, f[kNumInputs] = {0};
+      if (sscanf(line, "X,%d,%d,%d,%d,%d,%d", &g[0], &f[0], &g[1], &f[1], &g[2], &f[2]) == 6) {
+        for (int i = 0; i < kNumInputs; ++i) {
+          g_state.input[i].gainTenthsDb = g[i];
+          g_state.input[i].flags = f[i];
+        }
+        g_state.inputKnown = true;
+        g_inputChanged = true;
+      }
+      break;
+    }
+    case 'Y': {
+      int m[kNumInputs] = {0};
+      if (sscanf(line, "Y,%d,%d,%d", &m[0], &m[1], &m[2]) == 3) {
+        for (int i = 0; i < kNumInputs; ++i) g_state.input[i].levelPermille = m[i];
+        g_inputLevelChanged = true;
+      }
+      break;
+    }
+    case '#': {  // raw controls for the CONTROLS TEST screen
+      int f[4] = {0}, e[4] = {0}, mask = 0, mcp = 0;
+      if (sscanf(line, "#,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d", &f[0], &f[1], &f[2], &f[3], &e[0], &e[1], &e[2], &e[3],
+                 &mask, &mcp) == 10) {
+        Controls& c = g_state.controls;
+        for (int i = 0; i < 4; ++i) {
+          c.faderPermille[i] = f[i];
+          c.encoderDetents[i] = e[i];
+        }
+        c.mask = mask;
+        c.known = true;
+        g_controlsChanged = true;
+      }
+      break;
+    }
+    case 'K': {
+      int st = 0, mic = 0, src = 0;
+      unsigned long el = 0;
+      char err[12] = {0};
+      if (sscanf(line, "K,%d,%lu,%d,%d,%11s", &st, &el, &mic, &src, err) >= 4) {
+        g_state.rec.state = st;
+        g_state.rec.elapsedMs = el;
+        g_state.rec.source = src;
+        strncpy(g_state.rec.err, strcmp(err, "-") == 0 ? "" : err, sizeof(g_state.rec.err) - 1);
+      }
+      break;
+    }
     case 'L':
       handleList(line);
       break;
@@ -634,6 +684,21 @@ bool takeMixerChanged() {
   g_mixerChanged = false;
   return v;
 }
+bool takeInputChanged() {
+  bool v = g_inputChanged;
+  g_inputChanged = false;
+  return v;
+}
+bool takeInputLevelChanged() {
+  bool v = g_inputLevelChanged;
+  g_inputLevelChanged = false;
+  return v;
+}
+bool takeControlsChanged() {
+  bool v = g_controlsChanged;
+  g_controlsChanged = false;
+  return v;
+}
 
 void sendHello() { Serial2.print("H\n"); }
 void sendGetList() { Serial2.print("G\n"); }
@@ -659,7 +724,19 @@ const UploadReply& uploadReply() { return g_upReply; }
 void sendAssignTrack(int track, const char* filename) { Serial2.printf("T,%d,%s\n", track, filename); }
 void sendClearTrack(int track) { Serial2.printf("R,%d\n", track); }
 void sendTogglePlay() { Serial2.print("P\n"); }
+void sendRecord(bool on, int source) {
+  if (on) {
+    Serial2.printf("J,1,%d\n", source);
+  } else {
+    Serial2.print("J,0\n");
+  }
+}
 void sendRewind() { Serial2.print("Z\n"); }
+void sendInput(int source, int gainTenthsDb, int flags) {
+  Serial2.printf("F,%d,%d,%d\n", source, gainTenthsDb, flags);
+}
+void sendInputMeters(bool on) { Serial2.printf("p,%d\n", on ? 1 : 0); }
+void sendControlsStream(bool on) { Serial2.printf("#,%d\n", on ? 1 : 0); }
 void sendVolume(int permille) { Serial2.printf("U,%d\n", permille); }
 void sendSeek(uint32_t positionMs) { Serial2.printf("B,%lu\n", (unsigned long)positionMs); }
 void sendCrop(int track, int clip, uint32_t startMs, uint32_t endMs) {
@@ -691,13 +768,6 @@ void editStep(int pattern, int row, int step, bool on) {
   }
   g_patHoldUntil[pattern] = millis() + kEditHoldMs;
   Serial2.printf("s,%d,%d,%d,%d\n", pattern, row, step, on ? 1 : 0);
-}
-
-void clearPattern(int pattern) {
-  if (pattern < 0 || pattern >= kNumPatterns) return;
-  for (int r = 0; r < kDrumRows; ++r) g_state.drums.rows[pattern][r] = 0;
-  g_patHoldUntil[pattern] = millis() + kEditHoldMs;
-  Serial2.printf("w,%d\n", pattern);
 }
 
 void setBpm(int bpm) {
@@ -853,6 +923,8 @@ void clearNotes(int pattern, int inst) {
 }
 
 void auditionNote(int inst, int midi) { Serial2.printf("t,%d,%d\n", inst, midi); }
+
+void sendDrumHit(int row) { Serial2.printf("y,%d\n", row); }
 
 void sendRouteHold(int row) { Serial2.printf("h,%d\n", row); }
 
